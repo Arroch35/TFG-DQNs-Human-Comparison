@@ -78,7 +78,7 @@ model = DQN(
 
 # 2️⃣ Load ONLY the parameters (weights)
 model.set_parameters(
-    "../../kaggle_outputs/dqn_pong_final",
+    "../../kaggle_outputs/best_model",
     exact_match=True,
 )
 

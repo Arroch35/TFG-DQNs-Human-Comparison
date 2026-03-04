@@ -1,43 +1,61 @@
+"""
+DQN Activation Extraction Script for RSA
+-----------------------------------------
+
+This script:
+1. Loads a trained DQN model.
+2. Loads human gameplay frames.
+3. Preprocesses frames exactly like AtariWrapper.
+4. Downsamples frames by 20 (as in the paper).
+5. Creates sliding 4-frame stacks (t-3, t-2, t-1, t).
+6. Passes each stack through the DQN.
+7. Extracts and flattens activations from each layer.
+8. Saves layer-wise activation matrices ready for RSA.
+
+Output:
+Each saved array has shape:
+    (num_selected_frames, num_units)
+
+Saved naming format:
+    subject_game_block_layer
+"""
+
 import os
 import numpy as np
 import torch
 import torch.nn as nn
+from stable_baselines3 import DQN
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import gymnasium as gym
 import ale_py
-from stable_baselines3 import DQN
 from stable_baselines3.common.atari_wrappers import AtariWrapper
-from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import VecFrameStack, DummyVecEnv
+import cv2
 
-# ----------------------------
+# =========================================================
 # CONFIGURATION
-# ----------------------------
-HUMAN_DATA_FILE = "../data/sub01_Pong-v5_block1.npz"  # human gameplay file
-SAVE_FOLDER = "../data/activations"
-FRAME_SKIP = 1         # as in gameplay recording
-STACK_SIZE = 4
-FPS_INTERVAL = 5       # save activations every 5 frames (tunable)
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Metadata
+# =========================================================
 SUBJECT_ID = "sub01"
 GAME = "Pong"
-BLOCK_INDEX = 1
+BLOCK = "block1"
 
-os.makedirs(SAVE_FOLDER, exist_ok=True)
+FILE = "../data/sub01_Pong-v5_block1.npz"
+MODEL_PATH = "../../kaggle_outputs/best_model"
+SAVE_FOLDER = "../data"
 
-# ----------------------------
-# LOAD HUMAN DATA
-# ----------------------------
-human_data = np.load(HUMAN_DATA_FILE)
-frames = human_data["frames"]  # shape: (num_frames, H, W, C)
-frames = frames.transpose(0, 3, 1, 2)  # convert to (N, C, H, W) for PyTorch
+DOWNSAMPLE = 20   # Paper uses downsampling by 20
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# ----------------------------
-# DQN SETUP
-# ----------------------------
+
+# =========================================================
+# ACTION RESTRICTION WRAPPER (same as training)
+# =========================================================
 class RestrictPongActions(gym.ActionWrapper):
+    """
+    Restrict actions to [NOOP, UP, DOWN]
+    Must match training exactly.
+    """
     def __init__(self, env):
         super().__init__(env)
         self.allowed_actions = np.array([0, 2, 3])
@@ -46,10 +64,20 @@ class RestrictPongActions(gym.ActionWrapper):
     def action(self, action):
         return int(self.allowed_actions[action])
 
+
+# =========================================================
+# CUSTOM CNN (same architecture as training)
+# =========================================================
 class CustomCNN(BaseFeaturesExtractor):
+    """
+    CNN used during DQN training.
+    Must match training architecture exactly.
+    """
     def __init__(self, observation_space, features_dim=512):
         super().__init__(observation_space, features_dim)
+
         n_input_channels = observation_space.shape[0]
+
         self.cnn = nn.Sequential(
             nn.Conv2d(n_input_channels, 32, 8, stride=4),
             nn.ReLU(),
@@ -58,9 +86,12 @@ class CustomCNN(BaseFeaturesExtractor):
             nn.Conv2d(64, 64, 3, stride=1),
             nn.ReLU(),
         )
+
+        # Compute flattened size dynamically
         with torch.no_grad():
             sample = torch.zeros(1, *observation_space.shape)
             n_flatten = self.cnn(sample).view(1, -1).shape[1]
+
         self.fc = nn.Sequential(
             nn.Linear(n_flatten, features_dim),
             nn.ReLU(),
@@ -71,73 +102,137 @@ class CustomCNN(BaseFeaturesExtractor):
         x = torch.flatten(x, start_dim=1)
         return self.fc(x)
 
-# Load model
+
+# =========================================================
+# CREATE ENVIRONMENT (to build correct observation space)
+# =========================================================
+def make_env():
+    env = gym.make("ALE/Pong-v5")
+    env = AtariWrapper(env)
+    env = RestrictPongActions(env)
+    env = Monitor(env)
+    return env
+
+env = make_env()
+env = VecFrameStack(DummyVecEnv([lambda: env]), n_stack=4)
+
+
+# =========================================================
+# LOAD TRAINED DQN
+# =========================================================
 policy_kwargs = dict(
     features_extractor_class=CustomCNN,
     features_extractor_kwargs=dict(features_dim=512),
 )
 
-env_dummy = gym.make("ALE/Pong-v5")
-env_dummy = AtariWrapper(env_dummy)
-env_dummy = RestrictPongActions(env_dummy)
-env_dummy = Monitor(env_dummy)
-env_dummy.reset(seed=42)
-
 model = DQN(
     "CnnPolicy",
-    env_dummy,
+    env,
     policy_kwargs=policy_kwargs,
-    buffer_size=1,         # not used for playing
-    learning_starts=0
+    buffer_size=1,
+    learning_starts=0,
 )
-model.set_parameters("../../kaggle_outputs/dqn_pong_final", exact_match=True)
+
+model.set_parameters(MODEL_PATH, exact_match=True)
 model.policy.to(DEVICE)
 model.policy.eval()
 
-# ----------------------------
-# REGISTER HOOKS TO COLLECT ACTIVATIONS
-# ----------------------------
+
+# =========================================================
+# REGISTER FORWARD HOOKS TO CAPTURE ACTIVATIONS
+# =========================================================
 activations = {}
-def save_activation(name):
+
+def get_activation(name):
+    """
+    Stores flattened activation per frame.
+    Output shape per frame:
+        (1, num_units)
+    """
     def hook(model, input, output):
-        activations[name].append(output.detach().cpu().numpy())
+        flat = output.detach().cpu().numpy().reshape(output.shape[0], -1)
+        if name not in activations:
+            activations[name] = []
+        activations[name].append(flat)
     return hook
 
-# Collect all named layers
-for name, module in model.policy.features_extractor.named_modules():
-    if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear) or isinstance(module, nn.ReLU):
-        activations[name] = []
-        module.register_forward_hook(save_activation(name))
 
-# ----------------------------
-# HELPER: STACK FRAMES
-# ----------------------------
-def get_stacked_frame(frames_list, idx, stack_size=4):
-    start_idx = max(0, idx - stack_size + 1)
-    stacked = frames_list[start_idx:idx+1]
-    # pad if not enough frames
-    if stacked.shape[0] < stack_size:
-        pad = np.repeat(stacked[0:1], stack_size - stacked.shape[0], axis=0)
-        stacked = np.concatenate([pad, stacked], axis=0)
-    return stacked
+# Register hooks for each convolution layer
+conv_counter = 1  # start numbering from 1
+for layer in model.policy.q_net.features_extractor.cnn:
+    if isinstance(layer, nn.Conv2d):
+        layer.register_forward_hook(get_activation(f"conv{conv_counter}"))
+        conv_counter += 1
 
-# ----------------------------
-# RUN HUMAN FRAMES THROUGH DQN
-# ----------------------------
-num_frames = frames.shape[0]
-for idx in range(0, num_frames, FPS_INTERVAL):
-    stacked_input = get_stacked_frame(frames, idx, STACK_SIZE)
-    stacked_input = torch.tensor(stacked_input, dtype=torch.float32, device=DEVICE).unsqueeze(0) / 255.0
-    with torch.no_grad():
-        _ = model.policy.features_extractor(stacked_input)
+# Register hook for fully connected layer
+for idx, layer in enumerate(model.policy.q_net.features_extractor.fc):
+    if isinstance(layer, nn.Linear):
+        layer.register_forward_hook(get_activation(f"fc{idx}"))
 
-# ----------------------------
-# SAVE ACTIVATIONS
-# ----------------------------
+
+# =========================================================
+# LOAD HUMAN GAMEPLAY FRAMES
+# =========================================================
+data = np.load(FILE)
+raw_frames = data["frames"]  # shape (N, 210, 160, 3)
+
+
+# =========================================================
+# PREPROCESS FRAMES (MATCH AtariWrapper)
+# =========================================================
+def preprocess_frame(frame):
+    """
+    Matches AtariWrapper:
+    1. Convert RGB -> grayscale
+    2. Resize to 84x84
+    3. Normalize to [0,1]
+    """
+    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
+    processed = resized.astype(np.float32) / 255.0
+    return processed
+
+processed_frames = np.array([preprocess_frame(f) for f in raw_frames])
+
+
+# =========================================================
+# SELECT FRAMES (DOWNSAMPLE BY 20)
+# =========================================================
+# We start at index 3 because DQN needs t-3, t-2, t-1, t
+selected_indices = np.arange(3, len(processed_frames), DOWNSAMPLE)
+
+
+# =========================================================
+# PASS FRAMES THROUGH DQN (SLIDING STACK)
+# =========================================================
+with torch.no_grad():
+    for t in selected_indices:
+        stack = processed_frames[t-3:t+1]   # sliding stack
+        stack_tensor = torch.tensor(stack, dtype=torch.float32).unsqueeze(0).to(DEVICE)
+        _ = model.policy.q_net.features_extractor(stack_tensor)
+
+
+# =========================================================
+# CONCATENATE ACTIVATIONS INTO MATRICES
+# =========================================================
+final_activations = {}
+
 for layer_name, acts in activations.items():
-    acts = np.array(acts)
-    filename = f"{SUBJECT_ID}_{GAME}_block{BLOCK_INDEX}_{layer_name}.npz"
-    filepath = os.path.join(SAVE_FOLDER, filename)
-    np.savez_compressed(filepath, activations=acts)
+    # acts is a list of (1, num_units)
+    matrix = np.concatenate(acts, axis=0)
+    key_name = f"{SUBJECT_ID}_{GAME}_{BLOCK}_{layer_name}"
+    final_activations[key_name] = matrix
+    print(f"{key_name} shape: {matrix.shape}")
 
-print(f"Saved activations for {num_frames} frames in {SAVE_FOLDER}")
+
+# =========================================================
+# SAVE ACTIVATIONS FOR RSA
+# =========================================================
+save_path = os.path.join(
+    SAVE_FOLDER,
+    f"{SUBJECT_ID}_{GAME}_{BLOCK}_DQN_activations.npz"
+)
+
+np.savez_compressed(save_path, **final_activations)
+
+print(f"\nSaved RSA-ready activations to:\n{save_path}")

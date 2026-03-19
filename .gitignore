@@ -213,7 +213,7 @@ data/
 notebooks/
 
 # Models
-models/
+./models/
 
 # Monitoring
 wandb/

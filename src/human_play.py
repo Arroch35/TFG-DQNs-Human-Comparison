@@ -14,7 +14,7 @@ import os
 # ----------------------------
 # CONFIGURATION
 # ----------------------------
-GAME = "ALE/Pong-v5"  # change for the current block
+GAME = "ALE/MsPacman-v5" #"ALE/Pong-v5"  # change for the current block
 SUBJECT_ID = "sub01"  # change per subject
 BLOCK_INDEX = 1       # change if you want to track block number
 BLOCK_DURATION_MINUTES = 2  # duration of this block

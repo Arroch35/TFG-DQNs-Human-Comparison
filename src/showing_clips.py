@@ -2,7 +2,6 @@ import os
 import re
 import glob
 import gc
-from collections import deque
 
 import numpy as np
 import imageio
@@ -12,22 +11,22 @@ import imageio
 # ============================================================
 
 # ---- Gameplay identity ----
-SUBJECT_ID = "sub_pruebas"
-GAME = "MsPacmanNoFrameskip-v4"   # e.g. "Pong-v5", "MsPacman-v5", "SpaceInvadersNoFrameskip-v4" data/sub01_MsPacman-v5_block1.npz
+SUBJECT_ID = "sub_clipsEjemplo" 
+GAME = "SpaceInvadersNoFrameskip-v4" # e.g. "Pong-v5", "MsPacman-v5", "SpaceInvadersNoFrameskip-v4"
 BLOCK_INDEX = 1
 
 # ---- Paths ----
 DATA_DIR = "data"
-CLIPS_ROOT = "data/clips"
+OUTPUT_DIR = "data/clips"
 
 # ---- Clip settings ----
-NUM_FRAMES = 12
-CLIP_DURATION_SECONDS = 2.0
-STEP_FRAMES = 50          # extract one clip every 100 frames
-MIN_END_FRAME = 1000       # skip very early gameplay if desired
+START_FRAME = 10                 # global frame index to start from
+NUM_FRAMES_TO_EXTRACT = 1000     # how many frames to include in the clip
+CLIP_DURATION_SECONDS = 10.0    # final video duration in seconds
 
-# Optional: force garbage collection every N saved clips
-GC_EVERY_N_CLIPS = 25
+# Example:
+# 300 frames / 10 sec = 30 fps
+# 600 frames / 10 sec = 60 fps (looks faster if source gameplay is same pace)
 
 # ============================================================
 # HELPERS
@@ -74,15 +73,15 @@ def find_gameplay_chunks(data_dir, subject_id, game, block_index):
 
         return int(match.group(1))
 
-    files = sorted(files, key=chunk_sort_key)
-    return files
+    return sorted(files, key=chunk_sort_key)
 
 
-def save_clip(frames, output_path, duration):
+def save_clip(frames, output_path, duration_seconds):
     """
-    Save a clip as mp4.
+    Save frames as one mp4 clip with fixed duration.
+    Playback speed depends on how many frames are packed into that duration.
     """
-    fps = len(frames) / duration
+    fps = len(frames) / duration_seconds
 
     with imageio.get_writer(output_path, fps=fps, macro_block_size=None) as writer:
         for frame in frames:
@@ -90,39 +89,36 @@ def save_clip(frames, output_path, duration):
 
 
 # ============================================================
-# MAIN EXTRACTION LOGIC (MEMORY-SAFE)
+# MAIN EXTRACTION LOGIC
 # ============================================================
 
-def extract_clips_streaming(
+def extract_single_clip_streaming(
     chunk_paths,
     output_dir,
     subject_id,
     game,
     block_index,
-    num_frames,
-    step_frames,
-    duration,
-    min_end_frame=0,
-    gc_every_n_clips=25
+    start_frame,
+    num_frames_to_extract,
+    clip_duration_seconds
 ):
     """
-    Stream through chunk files without concatenating them into memory.
-
-    Strategy:
-    - Maintain a rolling buffer of the last `num_frames` frames
-    - Track a global frame index across chunks
-    - Save one clip every `step_frames` frames
+    Stream through chunk files and extract ONE clip:
+    - starts at global frame index `start_frame`
+    - contains exactly `num_frames_to_extract` frames
+    - saved as a 10-second video (or chosen duration)
     """
 
-    rolling_buffer = deque(maxlen=num_frames)
+    collected_frames = []
     global_frame_idx = -1
-    saved_count = 0
+    end_frame = start_frame + num_frames_to_extract - 1
 
-    print("\nStarting streaming extraction...")
-    print(f" - Clip length: {num_frames} frames")
-    print(f" - Step: every {step_frames} frames")
-    print(f" - Duration: {duration:.2f}s")
-    print(f" - Min end frame: {min_end_frame}\n")
+    print("\nStarting single clip extraction...")
+    print(f" - Start frame: {start_frame}")
+    print(f" - End frame:   {end_frame}")
+    print(f" - Frames:      {num_frames_to_extract}")
+    print(f" - Duration:    {clip_duration_seconds:.2f}s")
+    print(f" - Output FPS:  {num_frames_to_extract / clip_duration_seconds:.2f}\n")
 
     for chunk_path in chunk_paths:
         fname = os.path.basename(chunk_path)
@@ -138,40 +134,43 @@ def extract_clips_streaming(
 
             for frame in frames:
                 global_frame_idx += 1
-                rolling_buffer.append(frame)
 
-                # Need enough frames first
-                if len(rolling_buffer) < num_frames:
+                # Skip until start frame
+                if global_frame_idx < start_frame:
                     continue
 
-                # Skip early frames if requested
-                if global_frame_idx < min_end_frame:
-                    continue
+                # Stop after collecting enough frames
+                if global_frame_idx > end_frame:
+                    break
 
-                # Save every step_frames
-                if global_frame_idx % step_frames == 0:
-                    clip_frames = np.array(rolling_buffer)
+                collected_frames.append(frame)
 
-                    output_filename = (
-                        f"{subject_id}_{game}_block{block_index}"
-                        f"_end{global_frame_idx:06d}_frames{num_frames}.mp4"
-                    )
-                    output_path = os.path.join(output_dir, output_filename)
-
-                    save_clip(clip_frames, output_path, duration)
-                    saved_count += 1
-
-                    print(f"  Saved clip #{saved_count:03d} -> end frame {global_frame_idx}")
-
-                    # Optional memory cleanup
-                    if saved_count % gc_every_n_clips == 0:
-                        gc.collect()
-
-            # Explicitly release this chunk before loading next one
             del frames
             gc.collect()
 
-    print(f"\nDone! Saved {saved_count} clips total.")
+        # If done, stop reading more chunks
+        if len(collected_frames) >= num_frames_to_extract:
+            break
+
+    if len(collected_frames) < num_frames_to_extract:
+        raise ValueError(
+            f"Not enough frames available.\n"
+            f"Requested {num_frames_to_extract} frames starting at frame {start_frame}, "
+            f"but only collected {len(collected_frames)}."
+        )
+
+    collected_frames = np.array(collected_frames)
+
+    output_filename = (
+        f"{subject_id}_{game}_block{block_index}"
+        f"_start{start_frame:06d}_end{end_frame:06d}"
+        f"_frames{num_frames_to_extract}_dur{int(clip_duration_seconds)}s.mp4"
+    )
+    output_path = os.path.join(output_dir, output_filename)
+
+    save_clip(collected_frames, output_path, clip_duration_seconds)
+
+    print(f"\nDone! Saved clip to:\n{output_path}")
 
 
 # ============================================================
@@ -191,23 +190,21 @@ def main():
     for p in chunk_paths:
         print(" -", os.path.basename(p))
 
-    # 2) Create output folder for this game
+    # 2) Create output folder
     game_folder = sanitize_game_name(GAME)
-    output_dir = os.path.join(CLIPS_ROOT, game_folder)
+    output_dir = os.path.join(OUTPUT_DIR, game_folder)
     os.makedirs(output_dir, exist_ok=True)
 
-    # 3) Extract clips in streaming mode (memory-safe)
-    extract_clips_streaming(
+    # 3) Extract one single clip
+    extract_single_clip_streaming(
         chunk_paths=chunk_paths,
         output_dir=output_dir,
         subject_id=SUBJECT_ID,
         game=GAME,
         block_index=BLOCK_INDEX,
-        num_frames=NUM_FRAMES,
-        step_frames=STEP_FRAMES,
-        duration=CLIP_DURATION_SECONDS,
-        min_end_frame=MIN_END_FRAME,
-        gc_every_n_clips=GC_EVERY_N_CLIPS
+        start_frame=START_FRAME,
+        num_frames_to_extract=NUM_FRAMES_TO_EXTRACT,
+        clip_duration_seconds=CLIP_DURATION_SECONDS
     )
 
 

@@ -38,10 +38,10 @@ import cv2
 # =========================================================
 SUBJECT_ID = "sub01"
 GAME = "Pong"
-BLOCK = "block1"
+BLOCK = "block2"
 
 FILE = "../data/sub01_Pong-v5_block1.npz"
-MODEL_PATH = "../../kaggle_outputs/best_model"
+MODEL_PATH = "../models/ALE/Pong-v5/dqn_pong_seed_42_18000000_steps"
 SAVE_FOLDER = "../data"
 
 DOWNSAMPLE = 20   # Paper uses downsampling by 20
@@ -107,7 +107,7 @@ class CustomCNN(BaseFeaturesExtractor):
 # CREATE ENVIRONMENT (to build correct observation space)
 # =========================================================
 def make_env():
-    env = gym.make("ALE/Pong-v5")
+    env = gym.make("PongNoFrameskip-v4")
     env = AtariWrapper(env)
     env = RestrictPongActions(env)
     env = Monitor(env)

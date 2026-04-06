@@ -27,7 +27,7 @@ from rsatoolbox.rdm import calc_rdm, compare, RDMs, concat
 # =========================================================
 # CONFIGURATION
 # =========================================================
-ACTIVATION_FILE = "../data/sub01_Pong_block1_DQN_activations.npz"
+ACTIVATION_FILE = "../data/sub01_Pong_block2_DQN_activations.npz"
 SAVE_FOLDER = "../data"
 
 TICK_STEP = 50  # For RDM plots

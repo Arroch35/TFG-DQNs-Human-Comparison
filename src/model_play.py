@@ -11,53 +11,16 @@ from stable_baselines3.common.monitor import Monitor
 import stable_baselines3
 print(stable_baselines3.__version__)
 
-# Same action restriction wrapper
-class RestrictPongActions(gym.ActionWrapper):
-    def __init__(self, env):
-        super().__init__(env)
-        self.allowed_actions = np.array([0, 2, 3])
-        self.action_space = gym.spaces.Discrete(len(self.allowed_actions))
-
-    def action(self, action):
-        return int(self.allowed_actions[action])
-
-class CustomCNN(BaseFeaturesExtractor):
-    def __init__(self, observation_space, features_dim=512):
-        super().__init__(observation_space, features_dim)
-
-        n_input_channels = observation_space.shape[0]
-
-        self.cnn = nn.Sequential(
-            nn.Conv2d(n_input_channels, 32, 8, stride=4),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, 4, stride=2),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3, stride=1),
-            nn.ReLU(),
-        )
-
-        with torch.no_grad():
-            sample = torch.zeros(1, *observation_space.shape)
-            n_flatten = self.cnn(sample).view(1, -1).shape[1]
-
-        self.fc = nn.Sequential(
-            nn.Linear(n_flatten, features_dim),
-            nn.ReLU(),
-        )
-
-    def forward(self, x):
-        x = self.cnn(x)
-        x = torch.flatten(x, start_dim=1)
-        return self.fc(x)
-
+from models.custom_dqn import CustomCNN
+from wrappers.environment_wrappers import RestrictPongActions, RestrictMsPacmanActions, RestrictSpaceInvadorsActions
 
 # Create evaluation environment (IMPORTANT: must match training)
 def make_eval_env():
-    env = gym.make("ALE/Pong-v5", render_mode="human")
+    env = gym.make("MsPacmanNoFrameskip-v4", render_mode="human") #PongNoFrameskip-v4 SpaceInvadorsNoFrameskip-v4 MsPacmanNoFrameskip
     env = AtariWrapper(env)          # preprocessing + frameskip
-    env = RestrictPongActions(env)   # restrict actions
+    env = RestrictMsPacmanActions(env) # RestrictPongActions(env)   # restrict actions
     env = Monitor(env)                # important for WandB reward logging
-    env.reset(seed=42)
+    env.reset()
     return env
 
 env = DummyVecEnv([make_eval_env])
@@ -78,7 +41,7 @@ model = DQN(
 
 # 2️⃣ Load ONLY the parameters (weights)
 model.set_parameters(
-    "../../kaggle_outputs/best_model",
+    "../models/MsPacmanNoFrameskip-v4/seed_27/best_model/best_model", #"../models/ALE/Pong-v5/dqn_pong_seed_42_18000000_steps",
     exact_match=True,
 )
 

@@ -38,14 +38,14 @@ print(f"Selected best dimension for all games: {best_dimension}")
 # 2) TRAIN t-STE AND COMPUTE RDMs USING rsatoolbox
 # =========================
 for game in games:
-    input_file = os.path.join(triplets_dir, f"{game}_triplets_indexed.csv")
+    input_file = os.path.join(triplets_dir, f"{game}_tste_constraints.csv")
     
     if not os.path.exists(input_file):
         print(f"Error: {input_file} not found. Skipping {game}.")
         continue
 
     df = pd.read_csv(input_file)
-    triplet_cols = ["similar_clip_1_idx", "similar_clip_2_idx", "odd_clip_idx"]
+    triplet_cols = ["reference", "near", "far"]
     triplets = np.ascontiguousarray(df[triplet_cols].values, dtype=np.int32)
     n_clips = np.max(triplets) + 1
     
@@ -78,7 +78,7 @@ for game in games:
     # -------------------------------
     # Compute correlation-distance RDM
     # -------------------------------
-    rdm_obj = calc_rdm(dataset, method="correlation")
+    rdm_obj = calc_rdm(dataset, method="euclidean") # method="correlation"
     rdm_matrix = rdm_obj.get_matrices()[0]
 
     # -------------------------------

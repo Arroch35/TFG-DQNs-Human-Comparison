@@ -54,6 +54,11 @@ def train():
     env = SubprocVecEnv([make_env(i) for i in range(N_ENVS)])
     env = VecFrameStack(env, n_stack=4)
 
+    obs = env.reset()
+    print("obs shape after wrappers:", obs.shape)
+    print("obs dtype:", obs.dtype)
+    print("obs min/max:", obs.min(), obs.max())
+
     # ------------------------------
     # Evaluation Environment
     # ------------------------------
@@ -80,6 +85,10 @@ def train():
     
     end = time.time()
     print("Steps/sec:", 100 * env.num_envs / (end - start))
+
+    print("obs shape after wrappers:", obs.shape)
+    print("obs dtype:", obs.dtype)
+    print("obs min/max:", obs.min(), obs.max())
 
     # ------------------------------
     # Callbacks & WandB

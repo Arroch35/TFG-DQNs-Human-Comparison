@@ -222,3 +222,5 @@ tensorboard/
 
 # BATCH Script
 run.sh
+
+debug*/

@@ -58,7 +58,7 @@ for game in games:
 
         # Save as .npy file
         base_name = os.path.splitext(clip_file)[0]
-        out_file = os.path.join(output_folder, f"{base_name}_frames.npy")
+        out_file = os.path.join(output_folder, f"{base_name}.npy")
         np.save(out_file, frames_array)
         print(f"Saved frames array: {out_file}, shape: {frames_array.shape}")
 

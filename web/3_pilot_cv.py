@@ -14,11 +14,10 @@ base_input_dir = "../data/cleaned_results"
 base_output_dir = "../data/tste_cv_results"
 os.makedirs(base_output_dir, exist_ok=True)
 
-# IMPORTANT: adjust this if your participant column has another name
+
 participant_col = "participant_id"
 
-# IMPORTANT: make sure these columns are in [reference, near, far] order
-triplet_cols = ["similar_clip_1_idx", "similar_clip_2_idx", "odd_clip_idx"]
+triplet_cols = ["reference", "near", "far"]
 
 # =========================
 # 2) HELPER FUNCTIONS
@@ -119,7 +118,7 @@ all_fold_results = []
 all_summary_results = []
 
 for game_name in games:
-    input_file = os.path.join(base_input_dir, f"{game_name}_triplets_indexed.csv")
+    input_file = os.path.join(base_input_dir, f"{game_name}_tste_constraints.csv")
 
     if not os.path.exists(input_file):
         print(f"WARNING: {input_file} not found. Skipping.")

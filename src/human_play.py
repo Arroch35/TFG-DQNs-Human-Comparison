@@ -18,7 +18,7 @@ BLOCK_INDEX = 1
 BLOCK_DURATION_MINUTES = 30
 FPS = 60
 FRAME_SKIP = 1
-SAVE_FOLDER = "../data"
+SAVE_FOLDER = "../data/human_plays"
 CHUNK_SIZE = 5000
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)

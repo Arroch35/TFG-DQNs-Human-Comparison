@@ -5,7 +5,7 @@ import os
 # =========================
 # 1) CONFIGURATION & PATHS
 # =========================
-input_folder = "../data/triplets_results/"
+input_folder = "../data/triplets_results/" # En este file pego los resultados descargados del experimento
 output_folder="../data/cleaned_results/"
 output_triplets_file = "all_participants_triplets.csv"
 output_survey_file = "all_participants_survey.csv"

@@ -22,13 +22,13 @@ from src.wrappers.environment_wrappers import RestrictPongActions, RestrictMsPac
 
 from pathlib import Path
 
-
+#!La forma de coger los clips está mal, así que esto tambien está mal
 # =========================================================
 # CONFIGURATION
 # =========================================================
 GAMES = ["pacman", "pong", "spaceinvaders"]
 FRAMES_BASE_FOLDER = "../data/frame_arrays"
-OUTPUT_FOLDER = "../data/DQN_activations"
+OUTPUT_FOLDER = "../data/PRUEBAS" #"../data/DQN_activations"
 MODEL_PATHS = {
     "MsPacmanNoFrameskip-v4": "../models/MsPacmanNoFrameskip-v4/seed_27/best_model/best_model",
     "PongNoFrameskip-v4": "../models/ALE/Pong-v5/dqn_pong_seed_42_18000000_steps",
@@ -120,7 +120,14 @@ for game in GAMES:
     model.policy.to(DEVICE)
     model.policy.eval()
 
+    activations = register_hooks(model) #register hooks once per model
+
     for clip_file in clip_files:
+
+        # Reset activations for this clip
+        for key in activations:
+            activations[key] = []
+
         clip_path = os.path.join(frames_folder, clip_file)
         clip_name = os.path.splitext(clip_file)[0]
         frames_array = np.load(clip_path)  # shape: (4, H, W, 3)
@@ -129,8 +136,6 @@ for game in GAMES:
         processed_frames = np.array([preprocess_frame(f) for f in frames_array])
         stack = processed_frames[np.newaxis, ...]  # shape (1, 4, H, W)
         stack_tensor = torch.tensor(stack, dtype=torch.float32).to(DEVICE)
-
-        activations = register_hooks(model)
 
         # Forward pass
         with torch.no_grad():

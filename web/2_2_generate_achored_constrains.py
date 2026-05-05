@@ -7,8 +7,8 @@ games=["pacman", "pong", "spaceinvaders"]
 
 for game in games:
 
-    input_csv = f"../data/cleaned_results/{game}_triplets_indexed.csv"
-    output_csv = f"../data/cleaned_results/{game}_tste_constraints.csv"
+    input_csv = f"../data/triplets_results/own_data/cleaned_results/{game}_triplets_indexed.csv" #f"../data/cleaned_results/{game}_triplets_indexed.csv"
+    output_csv = f"../data/triplets_results/own_data/cleaned_results/{game}_tste_constraints.csv" #f"../data/cleaned_results/{game}_tste_constraints.csv"
 
     # =========================
     # LOAD ORIGINAL CSV

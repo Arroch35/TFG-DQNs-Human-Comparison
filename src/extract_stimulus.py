@@ -12,16 +12,16 @@ import imageio
 # ============================================================
 
 # ---- Gameplay identity ----
-SUBJECT_ID = "sub_pruebas"
-GAME = "MsPacmanNoFrameskip-v4"   # e.g. "Pong-v5", "MsPacman-v5", "SpaceInvadersNoFrameskip-v4" data/sub01_MsPacman-v5_block1.npz
+SUBJECT_ID = "sub_big_rdm"
+GAME = "SpaceInvadersNoFrameskip-v4"   # e.g. "Pong-v5", "MsPacman-v5", "SpaceInvadersNoFrameskip-v4" data/sub01_MsPacman-v5_block1.npz
 BLOCK_INDEX = 1
 
 # ---- Paths ----
-DATA_DIR = "data"
-CLIPS_ROOT = "data/clips"
+FRAMES_DIR = "data/human_plays/big_rdm" #/human_plays
+CLIPS_ROOT = "data/test_16_clips/big_rdm" #"data/human_plays/clips"
 
 # ---- Clip settings ----
-NUM_FRAMES = 12
+NUM_FRAMES = 16
 CLIP_DURATION_SECONDS = 2.0
 STEP_FRAMES = 50          # extract one clip every 100 frames
 MIN_END_FRAME = 1000       # skip very early gameplay if desired
@@ -46,13 +46,13 @@ def sanitize_game_name(game_name: str) -> str:
         return re.sub(r'[^a-zA-Z0-9_-]', '_', game_lower)
 
 
-def find_gameplay_chunks(data_dir, subject_id, game, block_index):
+def find_gameplay_chunks(frames_dir, subject_id, game, block_index):
     """
     Find all chunk files corresponding to one gameplay:
     {SUBJECT_ID}_{GAME}_block{BLOCK_INDEX}_chunkXXXX.npz
     """
     pattern = os.path.join(
-        data_dir,
+        frames_dir,
         f"{subject_id}_{game}_block{block_index}_chunk*.npz"
     )
 
@@ -105,73 +105,61 @@ def extract_clips_streaming(
     min_end_frame=0,
     gc_every_n_clips=25
 ):
-    """
-    Stream through chunk files without concatenating them into memory.
+    from collections import deque
 
-    Strategy:
-    - Maintain a rolling buffer of the last `num_frames` frames
-    - Track a global frame index across chunks
-    - Save one clip every `step_frames` frames
-    """
+    frames_buffer = deque(maxlen=num_frames)
 
-    rolling_buffer = deque(maxlen=num_frames)
     global_frame_idx = -1
     saved_count = 0
 
-    print("\nStarting streaming extraction...")
-    print(f" - Clip length: {num_frames} frames")
-    print(f" - Step: every {step_frames} frames")
-    print(f" - Duration: {duration:.2f}s")
-    print(f" - Min end frame: {min_end_frame}\n")
-
     for chunk_path in chunk_paths:
-        fname = os.path.basename(chunk_path)
+            with np.load(chunk_path) as data:
+                frames = data["frames"]
 
-        with np.load(chunk_path) as data:
-            if "frames" not in data:
-                raise KeyError(f"'frames' key not found in {chunk_path}")
+                for i in range(len(frames)):
+                    global_frame_idx += 1
 
-            frames = data["frames"]
-            num_chunk_frames = len(frames)
+                    # ----------------------------
+                    # NATURAL FRAME BUFFER
+                    # ----------------------------
+                    # We always append frames to the buffer so that when we reach 
+                    # min_end_frame, we have the history needed to make a clip.
+                    frames_buffer.append(frames[i])
 
-            print(f"Processing {fname} ({num_chunk_frames} frames)...")
+                    # 1. Only start considering clips once we hit your specific end frame
+                    if global_frame_idx < min_end_frame:
+                        continue
 
-            for frame in frames:
-                global_frame_idx += 1
-                rolling_buffer.append(frame)
+                    # 2. Ensure we have enough frames in the buffer to actually save
+                    if len(frames_buffer) < num_frames:
+                        continue
 
-                # Need enough frames first
-                if len(rolling_buffer) < num_frames:
-                    continue
+                    # 3. Check if this frame follows the stepping interval starting FROM min_end_frame
+                    # This ensures: 1011, 1111, 1211, etc.
+                    if (global_frame_idx - min_end_frame) % step_frames != 0:
+                        continue
 
-                # Skip early frames if requested
-                if global_frame_idx < min_end_frame:
-                    continue
-
-                # Save every step_frames
-                if global_frame_idx % step_frames == 0:
-                    clip_frames = np.array(rolling_buffer)
-
-                    output_filename = (
+                    # =========================================================
+                    # SAVE (ALIGNED BY SAME END FRAME)
+                    # =========================================================
+                    clip_frames = np.array(frames_buffer)
+                    
+                    base_name = (
                         f"{subject_id}_{game}_block{block_index}"
-                        f"_end{global_frame_idx:06d}_frames{num_frames}.mp4"
+                        f"_end{global_frame_idx:06d}"
                     )
-                    output_path = os.path.join(output_dir, output_filename)
 
-                    save_clip(clip_frames, output_path, duration)
+                    save_clip(
+                        clip_frames,
+                        os.path.join(output_dir, base_name + ".mp4"),
+                        duration
+                    )
+
                     saved_count += 1
+                    print(f"Saved clip #{saved_count:03d} (end={global_frame_idx})")
 
-                    print(f"  Saved clip #{saved_count:03d} -> end frame {global_frame_idx}")
-
-                    # Optional memory cleanup
                     if saved_count % gc_every_n_clips == 0:
                         gc.collect()
-
-            # Explicitly release this chunk before loading next one
-            del frames
-            gc.collect()
-
-    print(f"\nDone! Saved {saved_count} clips total.")
 
 
 # ============================================================
@@ -181,7 +169,7 @@ def extract_clips_streaming(
 def main():
     # 1) Find all chunks for this gameplay
     chunk_paths = find_gameplay_chunks(
-        DATA_DIR,
+        FRAMES_DIR,
         SUBJECT_ID,
         GAME,
         BLOCK_INDEX

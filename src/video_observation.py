@@ -5,12 +5,13 @@ import ale_py
 
 from stable_baselines3.common.atari_wrappers import AtariWrapper
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+from wrappers.custom_atari_wrapper import CustomAtariWrapper
 
 # =========================================================
 # CONFIG
 # =========================================================
-GAME = "SpaceInvadersNoFrameskip-v4"
-OUTPUT_DIR = "./debug_5_stacks"
+GAME = "MsPacmanNoFrameskip-v4"
+OUTPUT_DIR = "./debug_5_stacks/human_readable"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 UPSCALE = 336
@@ -24,7 +25,7 @@ CAPTURE_STEPS = [200, 400, 600, 800, 1000]
 def make_env():
     def _init():
         env = gym.make(GAME)
-        env = AtariWrapper(env)
+        env = CustomAtariWrapper(env)
         return env
     return _init
 
@@ -58,27 +59,21 @@ while capture_idx < len(CAPTURE_STEPS):
         # =========================================================
         # SAVE VIDEO
         # =========================================================
-        video_path = os.path.join(OUTPUT_DIR, f"SpaceInvaders_stack_{capture_idx+1}.mp4")
+        video_path = os.path.join(OUTPUT_DIR, f"MsPacman_stack_{capture_idx+1}.mp4")
 
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        writer = cv2.VideoWriter(video_path, fourcc, 2, (UPSCALE, UPSCALE))
+        writer = cv2.VideoWriter(video_path, fourcc, 2, (160, 210))
 
         for i in range(4):
-            frame = stack[:, :, i]
+            frame = stack[:, :, i*3:(i+1)*3]  # (H,W,3)
 
-            frame = cv2.resize(frame, (UPSCALE, UPSCALE), interpolation=cv2.INTER_NEAREST)
-            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
-            cv2.putText(
-                frame,
-                f"Frame {i+1}",
-                (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1.0,
-                (255, 255, 255),
-                2,
-                cv2.LINE_AA
-            )
+            frame = cv2.resize(frame, (160, 210), interpolation=cv2.INTER_NEAREST)
+
+            print(stack.shape)
+            print(stack[:, :, :3].mean(), stack[:, :, 3:6].mean())
+
 
             writer.write(frame)
 

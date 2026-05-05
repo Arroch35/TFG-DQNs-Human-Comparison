@@ -10,8 +10,8 @@ from scipy.spatial.distance import cdist
 games = ["pacman", "pong", "spaceinvaders"]
 dims_to_try = [2, 3, 5, 8, 10]
 
-base_input_dir = "../data/cleaned_results"
-base_output_dir = "../data/tste_cv_results"
+base_input_dir = "../data/triplets_results/own_data/cleaned_results"#"../data/cleaned_results"
+base_output_dir = "../data/triplets_results/own_data/cleaned_results/tste_cv_results/" #"../data/tste_cv_results"
 os.makedirs(base_output_dir, exist_ok=True)
 
 
@@ -111,6 +111,86 @@ def run_lopo_cv(df, game_name, dims_to_try, participant_col, triplet_cols,
     return fold_results_df, summary_df
 
 
+def run_triplet_split_cv(df, game_name, dims_to_try, triplet_cols,
+                        train_percents=[0.2, 0.4, 0.6, 0.8],
+                        n_repeats=10,
+                        max_iter=1000,
+                        use_log=True):
+
+    print(f"\n===== GAME: {game_name} =====")
+
+    triplets_all = np.ascontiguousarray(
+        df[triplet_cols].values, dtype=np.int32
+    )
+
+    n_total = len(triplets_all)
+    print(f"Total triplets: {n_total}")
+
+    results = []
+
+    for dim in dims_to_try:
+        print(f"\n--- Testing dimension: {dim} ---")
+
+        for p in train_percents:
+            n_train = int(n_total * p)
+
+            print(f"\nTrain percent: {p} ({n_train} triplets)")
+
+            for repeat in range(n_repeats):
+
+                np.random.seed(42 + repeat)
+
+                idx = np.random.permutation(n_total)
+
+                train_idx = idx[:n_train]
+                test_idx = idx[n_train:]
+
+                train_triplets = triplets_all[train_idx]
+                test_triplets = triplets_all[test_idx]
+
+                # Fit
+                X = cy_tste.tste(
+                    train_triplets,
+                    no_dims=dim,
+                    max_iter=max_iter,
+                    verbose=False,
+                    use_log=use_log
+                )
+
+                # Evaluate
+                train_acc = compute_triplet_accuracy(X, train_triplets)
+                test_acc = compute_triplet_accuracy(X, test_triplets)
+
+                print(f"[dim={dim} | p={p} | rep={repeat}] "
+                      f"Train: {train_acc:.3f} | Test: {test_acc:.3f}")
+
+                results.append({
+                    "game": game_name,
+                    "dimension": dim,
+                    "train_percent": p,
+                    "repeat": repeat,
+                    "n_train": len(train_triplets),
+                    "n_test": len(test_triplets),
+                    "train_accuracy": train_acc,
+                    "test_accuracy": test_acc
+                })
+
+    results_df = pd.DataFrame(results)
+
+    summary_df = (
+        results_df
+        .groupby(["game", "dimension", "train_percent"], as_index=False)
+        .agg(
+            mean_train_accuracy=("train_accuracy", "mean"),
+            std_train_accuracy=("train_accuracy", "std"),
+            mean_test_accuracy=("test_accuracy", "mean"),
+            std_test_accuracy=("test_accuracy", "std"),
+        )
+    )
+
+    return results_df, summary_df
+
+
 # =========================
 # 3) MAIN LOOP OVER GAMES
 # =========================
@@ -154,12 +234,23 @@ for game_name in games:
     print("Unique triplets:", len(triplets_unique), "out of", len(triplets))
 
     # Run LOPO-CV
-    fold_df, summary_df = run_lopo_cv(
+    # fold_df, summary_df = run_lopo_cv(
+    #     df=df,
+    #     game_name=game_name,
+    #     dims_to_try=dims_to_try,
+    #     participant_col=participant_col,
+    #     triplet_cols=triplet_cols,
+    #     max_iter=1000,
+    #     use_log=True
+    # )
+
+    fold_df, summary_df = run_triplet_split_cv(
         df=df,
         game_name=game_name,
         dims_to_try=dims_to_try,
-        participant_col=participant_col,
         triplet_cols=triplet_cols,
+        train_percents=[0.1, 0.2, 0.4, 0.6, 0.8],
+        n_repeats=20,
         max_iter=1000,
         use_log=True
     )

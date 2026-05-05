@@ -11,8 +11,8 @@ from rsatoolbox.rdm import calc_rdm
 # CONFIGURATION
 # =========================
 games = ["pacman", "pong", "spaceinvaders"]
-triplets_dir = "../data/cleaned_results"
-rdm_dir = "../data/rdms_human_experiment_rsa"
+triplets_dir = "../data/triplets_results/own_data/cleaned_results" #"../data/cleaned_results"
+rdm_dir = "../data/triplets_results/own_data/cleaned_results/rdms_human_experiment_rsa" #"../data/rdms_human_experiment_rsa"
 lopo_summary_file = "../data/tste_cv_results/all_games_lopo_summary.csv"
 max_iter = 1000
 TICK_STEP = 50  # For heatmap ticks
@@ -22,16 +22,17 @@ os.makedirs(rdm_dir, exist_ok=True)
 # =========================
 # 1) SELECT BEST DIMENSION
 # =========================
-summary_df = pd.read_csv(lopo_summary_file)
+# summary_df = pd.read_csv(lopo_summary_file)
 
-# Choose dimension with highest mean_test_accuracy, break ties with lowest std_test_accuracy
-best_dims = (
-    summary_df.groupby("dimension")
-    .agg(mean_test=("mean_test_accuracy", "mean"),
-         std_test=("std_test_accuracy", "mean"))
-    .sort_values(["mean_test", "std_test"], ascending=[False, True])
-)
-best_dimension = best_dims.index[0]
+# # Choose dimension with highest mean_test_accuracy, break ties with lowest std_test_accuracy
+# best_dims = (
+#     summary_df.groupby("dimension")
+#     .agg(mean_test=("mean_test_accuracy", "mean"),
+#          std_test=("std_test_accuracy", "mean"))
+#     .sort_values(["mean_test", "std_test"], ascending=[False, True])
+# )
+# best_dimension = best_dims.index[0]
+best_dimension=10
 print(f"Selected best dimension for all games: {best_dimension}")
 
 # =========================
@@ -74,11 +75,11 @@ for game in games:
     print("Embeddings X:\n", X)
     print("Min/max per dimension:", X.min(axis=0), X.max(axis=0))
 
-    #!ESTO NO ES EUCLIDIANT DISTANCE, ASÍ QUE TENDRÉ MIRAR MEJOR SI ESTO ES LO MEJOR O ES MEJOR LA EUCLIDIAN
+
     # -------------------------------
     # Compute correlation-distance RDM
     # -------------------------------
-    rdm_obj = calc_rdm(dataset, method="euclidean") # method="correlation"
+    rdm_obj = calc_rdm(dataset, method="euclidean") # method="correlation" method="euclidean"
     rdm_matrix = rdm_obj.get_matrices()[0]
 
     # -------------------------------

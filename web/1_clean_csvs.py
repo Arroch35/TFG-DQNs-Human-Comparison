@@ -5,10 +5,12 @@ import os
 # =========================
 # 1) CONFIGURATION & PATHS
 # =========================
-input_folder = "../data/triplets_results/" # En este file pego los resultados descargados del experimento
-output_folder="../data/cleaned_results/"
+input_folder = "../data/triplets_results/own_data/" #"../data/triplets_results/" # En este file pego los resultados descargados del experimento
+output_folder="../data/triplets_results/own_data/cleaned_results/" #"../data/cleaned_results/"
 output_triplets_file = "all_participants_triplets.csv"
 output_survey_file = "all_participants_survey.csv"
+
+os.makedirs(output_folder, exist_ok=True)
 
 # Get a list of all CSV files in the folder
 all_files = glob.glob(os.path.join(input_folder, "*.csv"))

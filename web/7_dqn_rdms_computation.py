@@ -10,9 +10,9 @@ from rsatoolbox.rdm import calc_rdm, compare, concat
 # CONFIGURATION
 # =========================================================
 GAMES = ["pacman", "pong", "spaceinvaders"]
-
-ACTIVATIONS_FOLDER = "../data/DQN_activations"
-SAVE_BASE_FOLDER = "../data/DQN_rdms"
+METHOD="euclidean" #euclidean #!LO HE CAMBIADO A euclidean
+ACTIVATIONS_FOLDER = "../data/test_16_PRUEBAS/buenos_25" #"../data/test_16_PRUEBAS/big_rdm_equal_size" #"../data/DQN_activations"
+SAVE_BASE_FOLDER = "../data/test_16_rdms/buenos_25" #"../data/test_16_rdms/big_rdm_equal_size" #"../data/DQN_rdms"
 
 os.makedirs(SAVE_BASE_FOLDER, exist_ok=True)
 
@@ -59,7 +59,7 @@ for game in GAMES:
     layer_activations = {}   # layer_name -> list of (1, num_units)
     clip_names = []
 
-    for file in sorted(activation_files):
+    for file in activation_files:
         file_path = os.path.join(ACTIVATIONS_FOLDER, file)
         data = np.load(file_path)
 
@@ -103,9 +103,9 @@ for game in GAMES:
         )
 
         # -------------------------------
-        # Compute correlation-distance RDM
+        # Compute correlation-distance RDM  
         # -------------------------------
-        rdm_obj = calc_rdm(dataset, method="correlation")
+        rdm_obj = calc_rdm(dataset, method=METHOD) #METHOD="correlation"
         rdm_objects.append(rdm_obj)
 
         # Extract square matrix
@@ -114,7 +114,7 @@ for game in GAMES:
         # -------------------------------
         # Save RDM matrix
         # -------------------------------
-        npy_path = os.path.join(game_save_folder, f"{game}_{layer_name}_RDM.npy")
+        npy_path = os.path.join(game_save_folder, f"{game}_{layer_name}_{METHOD}_RDM.npy")
         np.save(npy_path, rdm_matrix)
         print(f"Saved RDM matrix: {npy_path}")
 
@@ -133,7 +133,7 @@ for game in GAMES:
         plt.yticks(ticks, fontsize=6)
 
         plt.tight_layout()
-        png_path = os.path.join(game_save_folder, f"{game}_{layer_name}_RDM.png")
+        png_path = os.path.join(game_save_folder, f"{game}_{layer_name}_{METHOD}_RDM.png")
         plt.savefig(png_path, dpi=300)
         plt.close()
 
@@ -149,7 +149,7 @@ for game in GAMES:
     print("RSA matrix shape:", rsa_matrix.shape)
 
     # Save RSA matrix
-    rsa_save_path = os.path.join(game_save_folder, f"{game}_DQN_layer_RSA_matrix.npy")
+    rsa_save_path = os.path.join(game_save_folder, f"{game}_DQN_layer_RSA_{METHOD}_matrix.npy")
     np.save(rsa_save_path, rsa_matrix)
     print("Saved RSA matrix:", rsa_save_path)
 
@@ -162,14 +162,18 @@ for game in GAMES:
     plt.title(f"{game} - RSA Between DQN Layers")
     plt.tight_layout()
 
-    png_path = os.path.join(game_save_folder, f"{game}_DQN_layer_RSA_heatmap.png")
+    png_path = os.path.join(game_save_folder, f"{game}_DQN_layer_{METHOD}_RSA_heatmap.png")
     plt.savefig(png_path, dpi=300)
     plt.close()
 
     print("Saved RSA heatmap:", png_path)
 
-    print("Clip order used for DQN:")
-    for i, name in enumerate(clip_names):
-        print(i, name)
+    print(f"Number of clips used: {len(clip_names)}")
+
+    # print("Clip order used for DQN:")
+    # for i, name in enumerate(clip_names):
+    #     print(i, name)
 
 print("\nAll DQN RDMs and RSA matrices computed successfully.")
+
+# sub_big_rdm_MsPacmanNoFrameskip-v4_block1_end046400 ULTIMO FILE

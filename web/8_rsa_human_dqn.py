@@ -32,9 +32,9 @@ from rsatoolbox.rdm import RDMs, compare
 # =========================================================
 GAMES = ["pacman", "pong", "spaceinvaders"]
 
-HUMAN_RDM_FOLDER = "../data/rdms_human_experiment_rsa"
-DQN_RDM_BASE_FOLDER = "../data/DQN_rdms"
-SAVE_FOLDER = "../data/RSA_results"
+HUMAN_RDM_FOLDER = "../data/triplets_results/own_data/cleaned_results/rdms_human_experiment_rsa" #"../data/rdms_human_experiment_rsa"
+DQN_RDM_BASE_FOLDER = "../data/test_16_rdms" #"../data/DQN_rdms"
+SAVE_FOLDER = "../data/triplets_results/own_data/cleaned_results/RSA_results" #"../data/test_16_RSA" #"../data/RSA_results"
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 

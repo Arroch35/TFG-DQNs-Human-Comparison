@@ -7,19 +7,28 @@ import os
 import threading
 import queue
 
+# 🔴 NEW IMPORTS
+from stable_baselines3.common.atari_wrappers import AtariWrapper
+from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+
+from wrappers.custom_atari_wrapper import CustomAtariWrapper
+
 # ----------------------------
 # CONFIGURATION
 # ----------------------------
-GAMES = ["PongNoFrameskip-v4", "MsPacmanNoFrameskip-v4", "SpaceInvadersNoFrameskip-v4", "ALE/Galaxian-v5"]
+GAMES = ["PongNoFrameskip-v4", "MsPacmanNoFrameskip-v4", "SpaceInvadersNoFrameskip-v4"]
 GAME = GAMES[2]
 
-SUBJECT_ID = "sub_clipsEjemplo"
+SUBJECT_ID = "sub_big_rdm"
 BLOCK_INDEX = 1
-BLOCK_DURATION_MINUTES = 30
+BLOCK_DURATION_MINUTES = 15
 FPS = 60
 FRAME_SKIP = 1
-SAVE_FOLDER = "../data/human_plays"
+SAVE_FOLDER = "../data/human_plays/big_rdm"
 CHUNK_SIZE = 5000
+
+# 🔴 NEW: FIXED SEED (important for reproducibility)
+SEED = 100
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
@@ -27,26 +36,9 @@ os.makedirs(SAVE_FOLDER, exist_ok=True)
 # AUTOMATIC CONTROLS
 # ----------------------------
 KEYS_TO_ACTION = {
-    GAMES[0]: {
-        (ord("w"),): 2,
-        (ord("s"),): 3
-    },
-    GAMES[1]: {
-        (ord("w"),): 1,
-        (ord("d"),): 2,
-        (ord("a"),): 3,
-        (ord("s"),): 4
-    },
-    GAMES[2]: {
-        (ord("w"),): 1,  
-        (ord("d"),): 2,  
-        (ord("a"),): 3   
-    },
-    GAMES[3]: {
-        (ord("w"),): 1,  
-        (ord("d"),): 2,  
-        (ord("a"),): 3   
-    }
+    GAMES[0]: {(ord("w"),): 2, (ord("s"),): 3},
+    GAMES[1]: {(ord("w"),): 1, (ord("d"),): 2, (ord("a"),): 3, (ord("s"),): 4},
+    GAMES[2]: {(ord("w"),): 1, (ord("d"),): 2, (ord("a"),): 3}
 }
 
 if GAME not in KEYS_TO_ACTION:
@@ -55,10 +47,35 @@ if GAME not in KEYS_TO_ACTION:
 keys_to_action = KEYS_TO_ACTION[GAME]
 
 # ----------------------------
-# DATA BUFFER (CURRENT CHUNK ONLY)
+# 🔴 NEW: CREATE DQN ENV
+# ----------------------------
+def make_dqn_env():
+    e = gym.make(GAME)
+    e = AtariWrapper(e)
+    return e
+
+dqn_env = DummyVecEnv([make_dqn_env])
+dqn_env = VecFrameStack(dqn_env, n_stack=4)
+
+
+# ----------------------------
+# 🔴 NEW: CREATE DQN ENV
+# ----------------------------
+def make_human_readable_env():
+    e = gym.make(GAME)
+    e = CustomAtariWrapper(e)
+    return e
+
+human_env = DummyVecEnv([make_human_readable_env])
+human_env = VecFrameStack(human_env, n_stack=4)
+
+# ----------------------------
+# DATA BUFFER
 # ----------------------------
 buffer = {
     "frames": [],
+    #"dqn_obs": [],  # 🔴 NEW
+    #"human_readable_obs": [],
     "actions": [],
     "rewards": [],
     "terminated": [],
@@ -76,8 +93,7 @@ MAX_SECONDS = BLOCK_DURATION_MINUTES * 60
 # ASYNC SAVE SYSTEM
 # ----------------------------
 save_queue = queue.Queue()
-stop_saver = object()  # sentinel
-
+stop_saver = object()
 
 def saver_worker():
     while True:
@@ -91,11 +107,13 @@ def saver_worker():
         filename = f"{SUBJECT_ID}_{GAME.split('/')[-1]}_block{BLOCK_INDEX}_{suffix}.npz"
         filepath = os.path.join(SAVE_FOLDER, filename)
 
-        print(f"[Saver] Saving {len(chunk_data['actions'])} frames to {filepath}...")
+        print(f"[Saver] Saving {len(chunk_data['actions'])} steps to {filepath}...")
 
         np.savez_compressed(
             filepath,
             frames=np.array(chunk_data["frames"], dtype=np.uint8),
+            # dqn_obs=np.array(chunk_data["dqn_obs"], dtype=np.uint8),  # 🔴 NEW
+            # human_readable_obs=np.array(chunk_data["human_readable_obs"], dtype=np.uint8),
             actions=np.array(chunk_data["actions"], dtype=np.int16),
             rewards=np.array(chunk_data["rewards"], dtype=np.float32),
             terminated=np.array(chunk_data["terminated"], dtype=bool),
@@ -106,12 +124,11 @@ def saver_worker():
 
         save_queue.task_done()
 
-
 saver_thread = threading.Thread(target=saver_worker, daemon=True)
 saver_thread.start()
 
 # ----------------------------
-# SAVE FUNCTION (NON-BLOCKING)
+# SAVE FUNCTION
 # ----------------------------
 def flush_buffer_to_queue(final=False):
     global buffer, chunk_counter
@@ -121,10 +138,11 @@ def flush_buffer_to_queue(final=False):
 
     suffix = "final" if final else f"chunk{chunk_counter:04d}"
 
-    # Swap buffers so gameplay continues immediately
     chunk_data = buffer
     buffer = {
         "frames": [],
+        # "dqn_obs": [],  # 🔴 NEW
+        # "human_readable_obs": [],
         "actions": [],
         "rewards": [],
         "terminated": [],
@@ -135,7 +153,6 @@ def flush_buffer_to_queue(final=False):
 
     save_queue.put((chunk_data, suffix))
     chunk_counter += 1
-
 
 # ----------------------------
 # CALLBACK FUNCTION
@@ -149,9 +166,26 @@ def my_callback(obs_t, obs_tp1, action, rew, terminated, truncated, info):
 
     current_time = time.time()
     elapsed = current_time - start_time
+    print(action)
 
-    # Record current step
-    buffer["frames"].append(obs_tp1.copy())
+    # 🔴 HUMAN FRAME (use render, not obs_tp1)
+    frame = env.render()
+
+    # 🔴 STEP DQN ENV WITH SAME ACTION
+    # dqn_obs, _, _, _ = dqn_env.step([action])
+
+    # # 🔴 STEP DQN ENV WITH SAME ACTION
+    # human_obs, _, _, _ = human_env.step([action])
+
+    # ----------------------------
+    # STORE DATA
+    # ----------------------------
+    print(frame.shape)
+    # print(dqn_obs[0].shape)
+    # print(human_obs[0].shape)
+    buffer["frames"].append(frame.copy())
+    # buffer["dqn_obs"].append(dqn_obs[0].copy())  # (4,84,84)
+    # buffer["human_readable_obs"].append(human_obs[0].copy())
     buffer["actions"].append(action)
     buffer["rewards"].append(rew)
     buffer["terminated"].append(terminated)
@@ -161,23 +195,33 @@ def my_callback(obs_t, obs_tp1, action, rew, terminated, truncated, info):
 
     if terminated or truncated:
         episode_counter += 1
+        dqn_env.reset()  # 🔴 IMPORTANT
+        human_env.reset()
 
-    # Save chunk asynchronously
+    # # SAVE CHUNK
     if len(buffer["actions"]) >= CHUNK_SIZE:
         flush_buffer_to_queue(final=False)
 
-    # End block
+    # END BLOCK
     if elapsed >= MAX_SECONDS:
         print("--- Block finished ---")
         flush_buffer_to_queue(final=True)
         raise KeyboardInterrupt("Block finished. Data queued for saving.")
-
 
 # ----------------------------
 # RUN BLOCK
 # ----------------------------
 if __name__ == "__main__":
     env = gym.make(GAME, render_mode="rgb_array", frameskip=FRAME_SKIP)
+
+    # 🔴 SYNC SEEDS
+    obs, _ = env.reset(seed=SEED)
+
+    dqn_env.seed(SEED)
+    dqn_env.reset()
+
+    human_env.seed(SEED)
+    human_env.reset()
 
     try:
         play(env, keys_to_action=keys_to_action, callback=my_callback, fps=FPS)
@@ -186,13 +230,10 @@ if __name__ == "__main__":
         print(e)
 
     finally:
-        # Save any remaining unsaved data
         flush_buffer_to_queue(final=True)
 
-        # Wait until all queued chunks are fully written
         save_queue.join()
 
-        # Stop saver thread cleanly
         save_queue.put(stop_saver)
         saver_thread.join()
 

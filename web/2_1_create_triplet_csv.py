@@ -4,9 +4,9 @@ import os
 # =========================
 # 1) CONFIGURATION
 # =========================
-triplets_file = "../data/cleaned_results/all_participants_triplets.csv"
+triplets_file = "../data/triplets_results/own_data/cleaned_results/all_participants_triplets.csv" #"../data/cleaned_results/all_participants_triplets.csv"
 games = ["pacman", "spaceinvaders", "pong"]
-output_file = "../data/cleaned_results/all_participants_triplets_indexed.csv"
+output_file = "../data/triplets_results/own_data/cleaned_results/all_participants_triplets_indexed.csv" # "../data/cleaned_results/all_participants_triplets_indexed.csv"
 
 game_name_map = {
     "MsPacmanNoFrameskip-v4": "pacman",
@@ -76,7 +76,7 @@ if os.path.exists(triplets_file):
             final_game_df = game_df[[col for col in output_columns if col in game_df.columns]]
             
             # Create a specific filename (e.g., ../data/cleaned_results/pacman_triplets_indexed.csv)
-            game_output_path = f"../data/cleaned_results/{short_name}_triplets_indexed.csv"
+            game_output_path = f"../data/triplets_results/own_data/cleaned_results/{short_name}_triplets_indexed.csv" #f"../data/cleaned_results/{short_name}_triplets_indexed.csv"
             
             os.makedirs(os.path.dirname(game_output_path), exist_ok=True)
             final_game_df.to_csv(game_output_path, index=False)

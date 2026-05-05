@@ -5,7 +5,8 @@ import pandas as pd
 # 1) CONFIGURATION
 # =========================
 games = ["pacman", "spaceinvaders", "pong"]
-base_path_template = "../data/clips/{game_name}/buenos/pilot/"
+base_path_template = "../data/clips/{game_name}/buenos/" #"../data/test_16_clips/big_rdm/{game_name}/" #"../data/clips/{game_name}/buenos/pilot/"
+
 
 # =========================
 # 2) PROCESSING LOOP
@@ -41,7 +42,8 @@ for game in games:
     # =========================
     # 3) SAVE MAPPING CSV
     # =========================
-    output_filename = f"../data/maps/{game}_clip_map.csv"
+    output_filename = f"../data/maps/buenos_25/{game}_clip_map.csv"
+    os.makedirs("../data/maps/buenos_25/", exist_ok=True)
     df_map.to_csv(output_filename, index=False)
     
     print(f"Created {output_filename} with {len(df_map)} clips.")

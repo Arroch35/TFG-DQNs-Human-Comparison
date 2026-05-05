@@ -22,17 +22,17 @@ from src.wrappers.environment_wrappers import RestrictPongActions, RestrictMsPac
 
 from pathlib import Path
 
-#!La forma de coger los clips está mal, así que esto tambien está mal
+
 # =========================================================
 # CONFIGURATION
 # =========================================================
 GAMES = ["pacman", "pong", "spaceinvaders"]
-FRAMES_BASE_FOLDER = "../data/frame_arrays"
-OUTPUT_FOLDER = "../data/PRUEBAS" #"../data/DQN_activations"
+FRAMES_BASE_FOLDER = "../data/test_16_arrays/buenos_25" #"../data/test_16_arrays/big_rdm_equal_size" #"../data/frame_arrays"
+OUTPUT_FOLDER =  "../data/test_16_PRUEBAS/buenos_25" #"../data/test_16_PRUEBAS/big_rdm_equal_size" #"../data/DQN_activations"
 MODEL_PATHS = {
     "MsPacmanNoFrameskip-v4": "../models/MsPacmanNoFrameskip-v4/seed_27/best_model/best_model",
-    "PongNoFrameskip-v4": "../models/ALE/Pong-v5/dqn_pong_seed_42_18000000_steps",
-    "SpaceInvadersNoFrameskip-v4": "../models/SpaceInvadorsNoFrameskip-v4/seed_42/best_model/best_model",
+    "PongNoFrameskip-v4": "../models/PongNoFrameskip-v4/seed_0/best_model/best_model",
+    "SpaceInvadersNoFrameskip-v4": "../models/SpaceInvadersNoFrameskip-v4/seed_42/best_model/best_model",
 }
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -65,6 +65,37 @@ def make_env(game_name):
 # =========================================================
 # PREPROCESS FRAMES
 # =========================================================
+def dqn_preprocess_from_16_frames(frames_16):
+    """
+    frames_16: np.array of shape (16, H, W, 3), dtype uint8
+
+    Returns:
+        stack: np.array of shape (4, 84, 84), float32 in [0,1]
+    """
+    #print(frames_16.shape)
+    assert frames_16.shape[0] == 16, "Expected 16 frames"
+
+    processed_frames = []
+
+    # Indices corresponding to frame skipping = 4
+    selected_indices = [3, 7, 11, 15]
+
+    for t in selected_indices:
+        # Max-pooling over last 2 frames
+        pooled = np.maximum(frames_16[t], frames_16[t - 1])
+
+        # Grayscale
+        gray = cv2.cvtColor(pooled, cv2.COLOR_RGB2GRAY)
+
+        # Resize to 84x84
+        resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
+
+        processed_frames.append(resized)
+
+    stack = np.stack(processed_frames, axis=0).astype(np.float32) / 255.0
+
+    return stack
+
 def preprocess_frame(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
@@ -133,9 +164,32 @@ for game in GAMES:
         frames_array = np.load(clip_path)  # shape: (4, H, W, 3)
 
         # Preprocess and stack
-        processed_frames = np.array([preprocess_frame(f) for f in frames_array])
-        stack = processed_frames[np.newaxis, ...]  # shape (1, 4, H, W)
+        stack = dqn_preprocess_from_16_frames(frames_array)
+        stack = stack[np.newaxis, ...]  # shape (1, 4, 84, 84)
         stack_tensor = torch.tensor(stack, dtype=torch.float32).to(DEVICE)
+
+        # processed_frames = np.array([preprocess_frame(f) for f in frames_array[12:]])
+        # stack_old = processed_frames[np.newaxis, ...]  # shape (1, 4, H, W)
+        # stack_tensor_old = torch.tensor(stack_old, dtype=torch.float32).to(DEVICE)
+
+        # diff = (stack_tensor_old - stack_tensor).detach().cpu().numpy()
+        # print(np.mean(np.abs(diff)))
+
+        # diffs = [np.mean(np.abs(frames_array[i] - frames_array[i+1])) for i in range(15)]
+        # print(diffs)
+
+        # # Global difference
+        # diff = np.abs(stack_old - stack)
+        # print("Global mean diff:", diff.mean())
+        # print("Global max diff:", diff.max())
+        # stack_old = stack_old.squeeze(0)
+        # stack = stack.squeeze(0)
+
+        # # Per-frame difference
+        # for i in range(4):
+        #     frame_diff = np.abs(stack_old[i] - stack[i])
+        #     print(f"Frame {i} mean diff:", frame_diff.mean(),
+        #         "| max diff:", frame_diff.max())
 
         # Forward pass
         with torch.no_grad():
@@ -147,12 +201,10 @@ for game in GAMES:
             matrix = np.concatenate(acts, axis=0)
             key_name = f"{clip_name}_{layer_name}"
             final_activations[key_name] = matrix
-            print(f"{key_name} shape: {matrix.shape}")
+            #print(f"{key_name} shape: {matrix.shape}")
 
         save_file = os.path.join(OUTPUT_FOLDER, f"{clip_name}_activations.npz")
         np.savez_compressed(save_file, **final_activations)
-        print(f"Saved activations: {save_file}")
+        #print(f"Saved activations: {save_file}")
 
 print("\nAll clips processed with game-specific restricted actions.")
-
-#TODO: Me sale un error de no se que mierdas

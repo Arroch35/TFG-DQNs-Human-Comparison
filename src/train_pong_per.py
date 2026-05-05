@@ -11,6 +11,7 @@ from stable_baselines3.common.monitor import Monitor
 from wandb.integration.sb3 import WandbCallback
 
 from src.models.custom_dqn import CustomCNN
+from src.models.per_dqn import PERDQN
 from src.wrappers.environment_wrappers import RestrictPongActions
 import argparse
 
@@ -127,22 +128,21 @@ def train():
         features_extractor_kwargs=dict(features_dim=512),
     )
 
-    model = DQN(
+    model = PERDQN(
         "CnnPolicy",
         env,
-        seed=seed,
-        batch_size=32,          # increased batch size
         buffer_size=100_000,
         learning_starts=50_000,
-        learning_rate=1e-4,
-        gamma=0.99,
+        batch_size=32,
         train_freq=4,
-        gradient_steps=4,        # increased gradient steps
-        target_update_interval=10_000,
-        exploration_fraction=0.1,
-        exploration_final_eps=0.1,
-        tensorboard_log="./tensorboard/",
-        policy_kwargs=policy_kwargs,
+        gradient_steps=1,
+        exploration_final_eps=0.01,
+
+        per_alpha=0.6,
+        per_beta_start=0.4,
+        per_beta_end=1.0,
+        per_beta_fraction=1.0,  # over full training
+
         verbose=1,
         device=DEVICE,
     )
@@ -157,3 +157,6 @@ def train():
 
 if __name__ == '__main__':
     train()
+
+ 
+#!Per funciona, pero tengo que verlo en el cluster y con que modelos. Tengo que ver tambien que esté bien implementado y con env y buffer size adecuados

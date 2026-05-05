@@ -5,19 +5,23 @@ import numpy as np
 # =========================
 # CONFIGURATION
 # =========================
-games = ["pacman", "pong", "spaceinvaders"]
-base_input_folder = "../data/clips"
-n_frames_to_extract = 4
+games = ["pacman", 
+         "pong", 
+         "spaceinvaders"
+         ]
+base_input_folder = "../data/test_16_clips/" #"../data/test_16_clips/big_rdm" #"../data/clips"
+n_frames_to_extract = 16
 
 # =========================
 # PROCESS ALL GAMES
 # =========================
 for game in games:
-    input_folder = os.path.join(base_input_folder, game, "buenos", "pilot")
-    output_folder = os.path.join("../data/frame_arrays", game)
+    input_folder = os.path.join(base_input_folder, game, "buenos_25") #, "buenos", "pilot"
+    output_folder = os.path.join("../data/test_16_arrays/buenos_25", game) #"../data/frame_arrays"
     os.makedirs(output_folder, exist_ok=True)
 
     clip_files = [f for f in os.listdir(input_folder) if f.endswith(".mp4")]
+    #print(clip_files) #orden correcto!
     print(f"\nProcessing {len(clip_files)} clips for game: {game}")
 
     for clip_file in clip_files:
@@ -34,7 +38,7 @@ for game in games:
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         # Seek to last frames
-        start_frame = max(frame_count - n_frames_to_extract, 0)
+        start_frame = 0
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
 
         frames = []

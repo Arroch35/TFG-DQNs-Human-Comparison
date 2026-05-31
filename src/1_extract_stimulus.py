@@ -12,13 +12,13 @@ import imageio
 # ============================================================
 
 # ---- Gameplay identity ----
-SUBJECT_ID = "sub_big_rdm"
+SUBJECT_ID = "sub_training_set_pca"
 GAME = "SpaceInvadersNoFrameskip-v4"   # e.g. "Pong-v5", "MsPacman-v5", "SpaceInvadersNoFrameskip-v4" data/sub01_MsPacman-v5_block1.npz
 BLOCK_INDEX = 1
 
 # ---- Paths ----
-FRAMES_DIR = "data/human_plays/big_rdm" #/human_plays
-CLIPS_ROOT = "data/test_16_clips/big_rdm" #"data/human_plays/clips"
+FRAMES_DIR = "data/human_plays/pca_training" #"data/human_plays/big_rdm" #/human_plays
+CLIPS_ROOT = "data/test_16_clips/pca_training" #"data/human_plays/clips"
 
 # ---- Clip settings ----
 NUM_FRAMES = 16

@@ -30,11 +30,11 @@ from rsatoolbox.rdm import RDMs, compare
 # =========================================================
 # CONFIGURATION
 # =========================================================
-GAMES = ["pacman", "pong", "spaceinvaders"]
-
-HUMAN_RDM_FOLDER = "../data/triplets_results/own_data/cleaned_results/rdms_human_experiment_rsa" #"../data/rdms_human_experiment_rsa"
-DQN_RDM_BASE_FOLDER = "../data/test_16_rdms" #"../data/DQN_rdms"
-SAVE_FOLDER = "../data/triplets_results/own_data/cleaned_results/RSA_results" #"../data/test_16_RSA" #"../data/RSA_results"
+GAMES = ["pong", "pacman", "spaceinvaders"] # "pacman", 
+SEED="seed_42"
+HUMAN_RDM_FOLDER = "../data/rdms_human_experiment_rsa" #"../data/triplets_results/own_data/cleaned_results/rdms_human_experiment_rsa" #"../data/rdms_human_experiment_rsa"
+DQN_RDM_BASE_FOLDER = f"../data/test_16_rdms/pilot/{SEED}" #"../data/DQN_rdms"
+SAVE_FOLDER = f"../data/test_16_RSA/optimized_RDMs/{SEED}" #"../data/triplets_results/own_data/cleaned_results/RSA_results/pilot/{SEED}" #"../data/test_16_RSA" #"../data/RSA_results"
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
@@ -79,7 +79,7 @@ for game in GAMES:
     # -----------------------------------------------------
     game_dqn_folder = os.path.join(DQN_RDM_BASE_FOLDER, game)
 
-    dqn_rdm_files = sorted(glob.glob(os.path.join(game_dqn_folder, f"{game}_*_rdm.npy")))
+    dqn_rdm_files = sorted(glob.glob(os.path.join(game_dqn_folder, f"{game}_*_correlation_rdm.npy")))
 
     # Exclude layer-RSA matrix if it exists
     dqn_rdm_files = [f for f in dqn_rdm_files if "RSA" not in os.path.basename(f)]

@@ -2,6 +2,7 @@ import os
 import random
 import numpy as np
 import re
+import joblib
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -13,14 +14,16 @@ from rsatoolbox.rdm import calc_rdm, compare, concat
 # CONFIG
 # =========================================================
 GAMES = ["pacman", "pong", "spaceinvaders"]
-METHODS = ["correlation", "euclidean"]
+METHODS = ["correlation"] #, "euclidean"
+SEED = "seed_42"
+PCA_FOLDER = "../models/pca_models"
 
-ACTIVATIONS_FOLDER = "../data/test_16_PRUEBAS/big_rdm_equal_size"
-FULL_RSA_FOLDER = "../data/test_16_rdms/big_rdm_equal_size"
+ACTIVATIONS_FOLDER = f"../data/test_16_PRUEBAS/big_rdm_equal_size/{SEED}"
+FULL_RSA_FOLDER = f"../data/test_16_rdms/big_rdm_equal_size/{SEED}"
 OUTPUT_FOLDER = "../data/extra"
 
 SUBSET_SIZES = [10, 12, 15, 20, 25, 30, 50]
-N_SUBSETS = 100
+N_SUBSETS = 1000
 
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
@@ -28,7 +31,7 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 # HELPER
 # =========================================================
 def extract_layer_name(key):
-    match = re.search(r"(conv\d+|fc\d+)$", key)
+    match = re.search(r"(conv\d+|fc)$", key) #\d+
     if match:
         return match.group(1)
     else:
@@ -63,7 +66,39 @@ def compute_layer_rsa_from_files(activation_files, method):
     layer_names = sorted(layer_activations.keys())
 
     for layer_name in layer_names:
-        activations = np.concatenate(layer_activations[layer_name], axis=0)
+        activations = np.concatenate(
+            layer_activations[layer_name],
+            axis=0
+        ).astype(np.float32)
+
+        # -------------------------------------------------
+        # Apply PCA only for correlation distance
+        # -------------------------------------------------
+        if method == "correlation":
+
+            pca_path = os.path.join(
+                PCA_FOLDER,
+                game,
+                SEED,
+                f"{game}_{layer_name}_pca.pkl"
+            )
+
+            if not os.path.exists(pca_path):
+                raise FileNotFoundError(
+                    f"Missing PCA model: {pca_path}"
+                )
+
+            pca_data = joblib.load(pca_path)
+
+            pca = pca_data["pca"]
+            scaler = pca_data["scaler"]
+
+            # Normalize with training scaler
+            if scaler is not None:
+                activations = scaler.transform(activations)
+
+            # PCA projection
+            activations = pca.transform(activations)
 
         dataset = Dataset(
             activations,
@@ -157,10 +192,10 @@ for subset_size in SUBSET_SIZES:
                 "game": game,
                 "method": method,
                 "subset_size": subset_size,
-                "mean": correlations.mean(),
-                "std": correlations.std(),
-                "min": correlations.min(),
-                "max": correlations.max()
+                "mean": round(correlations.mean(), 4),
+                "std": round(correlations.std(), 4),
+                "min": round(correlations.min(), 4),
+                "max": round(correlations.max(), 4)
             })
 
             print(f"Mean: {correlations.mean():.4f}")

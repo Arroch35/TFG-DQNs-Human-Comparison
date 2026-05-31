@@ -5,7 +5,7 @@ import pandas as pd
 # 1) CONFIGURATION
 # =========================
 games = ["pacman", "spaceinvaders", "pong"]
-base_path_template = "../data/clips/{game_name}/buenos/" #"../data/test_16_clips/big_rdm/{game_name}/" #"../data/clips/{game_name}/buenos/pilot/"
+base_path_template = "../data/triplet_visualization_subset/selected_15/seed_42/filtered_all_difficulties/{game_name}/clips/" #"../data/clips/{game_name}/buenos/" #"../data/test_16_clips/big_rdm/{game_name}/" #"../data/clips/{game_name}/buenos/pilot/"
 
 
 # =========================
@@ -42,10 +42,10 @@ for game in games:
     # =========================
     # 3) SAVE MAPPING CSV
     # =========================
-    output_filename = f"../data/maps/buenos_25/{game}_clip_map.csv"
-    os.makedirs("../data/maps/buenos_25/", exist_ok=True)
+    output_filename = f"../data/maps/selected_15/{game}_clip_map.csv"
+    os.makedirs("../data/maps/selected_15/", exist_ok=True)
     df_map.to_csv(output_filename, index=False)
     
     print(f"Created {output_filename} with {len(df_map)} clips.")
 
-print("\nAll mappings generated.")
+print("/nAll mappings generated.")

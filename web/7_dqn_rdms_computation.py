@@ -1,6 +1,8 @@
 import os
 import re
+import joblib
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from rsatoolbox.data import Dataset
@@ -9,11 +11,13 @@ from rsatoolbox.rdm import calc_rdm, compare, concat
 # =========================================================
 # CONFIGURATION
 # =========================================================
-GAMES = ["pacman", "pong", "spaceinvaders"]
-METHOD="euclidean" #euclidean #!LO HE CAMBIADO A euclidean
-ACTIVATIONS_FOLDER = "../data/test_16_PRUEBAS/buenos_25" #"../data/test_16_PRUEBAS/big_rdm_equal_size" #"../data/DQN_activations"
-SAVE_BASE_FOLDER = "../data/test_16_rdms/buenos_25" #"../data/test_16_rdms/big_rdm_equal_size" #"../data/DQN_rdms"
-
+GAMES = [ "pong", "pacman", "spaceinvaders"] #"pacman", 
+SEED = "seed_42"
+METHOD="correlation" #euclidean #!LAS HECHAS CON EUCLIDEAN SON ANTÍGUAS (SOLO la seed 0 es nueva, que he ambiado el código para que no use el pca para esto), NO SE SI TENDRÍA QUE QUITAR EL PCA PARA HACERLAS EUCLIDEAN
+ACTIVATIONS_FOLDER = f"../data/test_16_PRUEBAS/buenos_25/{SEED}" # "../data/test_16_PRUEBAS/buenos_25" #"../data/DQN_activations"
+SAVE_BASE_FOLDER = f"../data/test_16_rdms/selected_subset_15/{SEED}" #"../data/test_16_rdms/buenos_25" #"../data/DQN_rdms"
+PCA_FOLDER = "../models/pca_models"
+ # "../data/subset_selection/seed_42\pong_best_subset.csv" #"../data/subset_selection/buenos_25/pong_best_subset.csv"
 os.makedirs(SAVE_BASE_FOLDER, exist_ok=True)
 
 # =========================================================
@@ -22,7 +26,7 @@ os.makedirs(SAVE_BASE_FOLDER, exist_ok=True)
 # --> conv1
 # =========================================================
 def extract_layer_name(key):
-    match = re.search(r"(conv\d+|fc\d+)$", key)
+    match = re.search(r"(conv\d+|fc)$", key) #\d+
     if match:
         return match.group(1)
     else:
@@ -42,10 +46,36 @@ for game in GAMES:
     # -----------------------------------------------------
     # Find all activation files for this game
     # -----------------------------------------------------
-    activation_files = [
+    all_files = [
         f for f in os.listdir(ACTIVATIONS_FOLDER)
         if f.endswith("_activations.npz") and game in f.lower()
     ]
+    FILTER_CSV = ""#f"../data/subset_selection/{SEED}/{game}_best_subset_indices.csv"
+
+    if FILTER_CSV and os.path.exists(FILTER_CSV):
+        filter_df = pd.read_csv(FILTER_CSV)
+        print(filter_df.columns)
+        # Assume your CSV has a column 'clip_name' (e.g., 'sub_pruebas_MsPacman...')
+        # We ensure it matches the filename format
+        allowed_names = set(filter_df['clip_name'].astype(str).str.replace(".mp4", "", regex=False))
+        
+
+        activation_files = [
+            f for f in all_files 
+            if f.replace("_activations.npz", "") in allowed_names
+        ]
+        print(all_files[:5])
+        print(allowed_names)
+
+        print(f"Filtering active: {len(activation_files)} of {len(all_files)} files kept.")
+    else:
+        activation_files = all_files
+        if FILTER_CSV:
+            print(f"Warning: CSV {FILTER_CSV} not found. Loading all files.")
+
+    if len(activation_files) == 0:
+        print(f"No activation files found for {game} after filtering, skipping.")
+        continue
 
     if len(activation_files) == 0:
         print(f"No activation files found for {game}, skipping.")
@@ -87,8 +117,61 @@ for game in GAMES:
     for layer_name in layer_names:
         print(f"\nProcessing layer: {layer_name}")
 
-        # Stack all clips: (n_clips, num_units)
-        activations = np.concatenate(layer_activations[layer_name], axis=0)
+        # -------------------------------------------------
+        # Stack activations
+        # -------------------------------------------------
+        activations = np.concatenate(
+            layer_activations[layer_name],
+            axis=0
+        ).astype(np.float32)
+
+        print(f"Original activation shape: {activations.shape}")
+
+        # -------------------------------------------------
+        # Apply PCA only for correlation distance
+        # -------------------------------------------------
+        if METHOD == "correlation":
+
+            # ---------------------------------------------
+            # Load corresponding PCA model
+            # ---------------------------------------------
+            pca_path = os.path.join(
+                PCA_FOLDER,
+                game,
+                SEED,
+                f"{game}_{layer_name}_pca.pkl"
+            )
+
+            if not os.path.exists(pca_path):
+                raise FileNotFoundError(
+                    f"Missing PCA model: {pca_path}"
+                )
+
+            pca_data = joblib.load(pca_path)
+
+            pca = pca_data["pca"]
+            scaler = pca_data["scaler"]
+
+            print(f"Loaded PCA: {pca_path}")
+
+            # ---------------------------------------------
+            # Normalize using TRAIN scaler
+            # ---------------------------------------------
+            if scaler is not None:
+                activations = scaler.transform(activations)
+
+            # ---------------------------------------------
+            # Apply PCA projection
+            # ---------------------------------------------
+            activations = pca.transform(activations)
+
+            print(f"PCA activation shape: {activations.shape}")
+
+        else:
+            print("Skipping PCA for euclidean distance")
+
+
+
         n_clips = activations.shape[0]
 
         print(f"Activation matrix shape: {activations.shape}")
@@ -159,6 +242,23 @@ for game in GAMES:
     plt.colorbar(im)
     plt.xticks(range(len(layer_names)), layer_names, rotation=45)
     plt.yticks(range(len(layer_names)), layer_names)
+
+    # -------------------------------------------------
+    # Add correlation values inside each cell
+    # -------------------------------------------------
+    for i in range(rsa_matrix.shape[0]):
+        for j in range(rsa_matrix.shape[1]):
+            value = rsa_matrix[i, j]
+
+            plt.text(
+                j, i,
+                f"{value:.2f}",      # 2 decimal places
+                ha="center",
+                va="center",
+                color="white",       # change to black if needed
+                fontsize=8
+            )
+
     plt.title(f"{game} - RSA Between DQN Layers")
     plt.tight_layout()
 

@@ -11,6 +11,7 @@ from stable_baselines3.common.monitor import Monitor
 from wandb.integration.sb3 import WandbCallback
 
 from src.models.custom_dqn import CustomCNN
+from src.models.per_dqn import PERDQN
 from src.wrappers.environment_wrappers import RestrictMsPacmanActions
 import argparse
 
@@ -110,7 +111,7 @@ def train():
         save_code=True,
     )
 
-    base_path = f"./models/{GAME}/seed_{seed}/"
+    base_path = f"./models/{GAME}/per_dqn/seed_{seed}/"
     os.makedirs(base_path, exist_ok=True)
 
     eval_callback = EvalCallback(
@@ -119,7 +120,7 @@ def train():
         log_path=base_path + "eval_logs/",
         eval_freq=200_000,
         n_eval_episodes=10,
-        deterministic=True,
+        deterministic=False,
         render=False,
     )
 
@@ -137,7 +138,7 @@ def train():
         features_extractor_kwargs=dict(features_dim=512),
     )
 
-    model = DQN(
+    model = PERDQN(
         "CnnPolicy",
         env,
         seed=seed,
@@ -147,12 +148,18 @@ def train():
         learning_rate=1e-4,
         gamma=0.99,
         train_freq=4,
-        gradient_steps=1,        # increased gradient steps
+        gradient_steps=1,
         target_update_interval=10_000,
         exploration_fraction=0.4,
         exploration_final_eps=0.1,
         tensorboard_log="./tensorboard/",
         policy_kwargs=policy_kwargs,
+
+        per_alpha=0.6,
+        per_beta_start=0.4,
+        per_beta_end=1.0,
+        per_beta_fraction=1.0,
+
         verbose=1,
         device=DEVICE,
     )

@@ -1,113 +1,11 @@
-# import pandas as pd
-# import numpy as np
+import pandas as pd
+from collections import Counter
 
-# # =========================================================
-# # CONFIG
-# # =========================================================
-# CSV_PATH = r"C:\Users\arroc\OneDrive\Escritorio\Apuntes\UAB\4th_year\TFG\Code_repo\data\triplet_visualization_subset\selected_15\seed_42\filtered_all_difficulties\pacman\hard_triplets.csv"
+# Paths
+triplets_folder = "../data/triplets_results/final_experiment/cleaned_results/all_participants_triplets.csv"
+maps = "../data/maps/selected_15/{game}_clip_map.csv"
 
-# # =========================================================
-# # LOAD CSV
-# # =========================================================
-# df = pd.read_csv(CSV_PATH)
-
-# # =========================================================
-# # CONVERT TO MATRIX
-# # =========================================================
-# triplet_matrix = df[
-#     ["similar1", "similar2", "odd"]
-# ].to_numpy(dtype=np.int32)
-
-# # =========================================================
-# # PRINT
-# # =========================================================
-# print("Triplet matrix shape:")
-# print(triplet_matrix.shape)
-
-# print("\nTriplet matrix:\n")
-
-# print("[")
-# for row in triplet_matrix:
-
-#     print(f"[{row[0]}, {row[1]}, {row[2]}],")
-
-# print("]")
-
-
-import random
-
-def sample_triplet(games_data, game_name):
-
-    # =====================================================
-    # SELECT RANDOM DIFFICULTY
-    # =====================================================
-    difficulties = [
-        "easy_triplets",
-        "medium_triplets",
-        "hard_triplets"
-    ]
-
-    difficulty = random.choice(
-        difficulties
-    )
-
-    # =====================================================
-    # GET TRIPLETS
-    # =====================================================
-    triplets = games_data[
-        game_name
-    ][difficulty]
-
-    # =====================================================
-    # SELECT RANDOM TRIPLET
-    # =====================================================
-    selected_triplet = random.choice(
-        triplets
-    )
-
-    i, j, k = selected_triplet
-
-    # =====================================================
-    # GET CLIPS
-    # =====================================================
-    # clips = games_data[
-    #     game_name
-    # ]["clips"]
-
-    # similar1 = clips[i]
-    # similar2 = clips[j]
-    # odd = clips[k]
-
-    # =====================================================
-    # RANDOMIZE DISPLAY ORDER
-    # =====================================================
-    randomized_triplet = [
-        {
-            "clip": i,
-            "role": "similar"
-        },
-        {
-            "clip": j,
-            "role": "similar"
-        },
-        {
-            "clip": k,
-            "role": "odd"
-        }
-    ]
-
-    random.shuffle(
-        randomized_triplet
-    )
-
-    # =====================================================
-    # RETURN
-    # =====================================================
-    return {
-        "game": game_name,
-        "difficulty": difficulty,
-        "triplet": randomized_triplet
-    }
+games = ["pacman", "pong", "spaceinvaders"]
 
 games_data = {
   "PongNoFrameskip-v4": {
@@ -803,9 +701,148 @@ games_data = {
   }
 }
 
-result = sample_triplet(
-    games_data,
-    "SpaceInvadersNoFrameskip-v4"
-)
+# -----------------------------
+# LOAD MAIN CSV
+# -----------------------------
+df = pd.read_csv(triplets_folder)
 
-print(result)
+# -----------------------------
+# LOAD ALL MAPS
+# clip_name -> clip_index
+# -----------------------------
+all_maps = {}
+
+game_name_to_map = {
+    "PongNoFrameskip-v4": "pong",
+    "SpaceInvadersNoFrameskip-v4": "spaceinvaders",
+    "MsPacmanNoFrameskip-v4": "pacman",
+}
+
+for full_game_name, short_game_name in game_name_to_map.items():
+
+    map_path = maps.format(game=short_game_name)
+
+    map_df = pd.read_csv(map_path)
+
+    # clip_name -> index
+    clip_to_idx = dict(zip(map_df["clip_name"], map_df["clip_index"]))
+
+    all_maps[full_game_name] = clip_to_idx
+
+# -----------------------------
+# PROCESS
+# -----------------------------
+results = {}
+
+for game_name in games_data.keys():
+
+    results[game_name] = {}
+
+    game_df = df[df["game_name"] == game_name]
+
+    clip_to_idx = all_maps[game_name]
+
+    for difficulty in ["easy_triplets", "medium_triplets", "hard_triplets"]:
+
+        diff_df = game_df[game_df["difficulty"] == difficulty]
+
+        # ---------------------------------
+        # OBSERVED TRIPLETS IN CSV
+        # ---------------------------------
+        observed_counter = Counter()
+
+        for _, row in diff_df.iterrows():
+
+            try:
+                s1 = clip_to_idx[row["similar_clip_1"]]
+                s2 = clip_to_idx[row["similar_clip_2"]]
+                odd = clip_to_idx[row["odd_clip"]]
+
+                # Similar clips unordered
+                #canonical_triplet = tuple(sorted([s1, s2]) + [odd])
+                canonical_triplet = tuple(sorted([s1, s2]) + [odd])
+
+                observed_counter[canonical_triplet] += 1
+
+            except KeyError:
+                print("Missing clip in mapping:")
+                print(row)
+
+        observed_set = set(observed_counter.keys())
+
+        # ---------------------------------
+        # EXPECTED TRIPLETS FROM games_data
+        # ---------------------------------
+        expected_triplets = {
+            tuple(sorted(t[:2]) + [t[2]])
+            for t in games_data[game_name][difficulty]
+        }
+
+        # ---------------------------------
+        # INTERSECTION
+        # ---------------------------------
+        common_triplets = observed_set.intersection(expected_triplets)
+
+        results[game_name][difficulty] = {
+            "observed_counter": observed_counter,
+            "observed_set": observed_set,
+            "expected_triplets": expected_triplets,
+            "common_triplets": common_triplets,
+        }
+
+# -----------------------------
+# PRINT RESULTS
+# -----------------------------
+for game_name in results:
+
+    print("\n" + "=" * 80)
+    print(f"GAME: {game_name}")
+    print("=" * 80)
+
+    for difficulty in results[game_name]:
+
+        data = results[game_name][difficulty]
+
+        observed_counter = data["observed_counter"]
+        observed_set = data["observed_set"]
+        expected_triplets = data["expected_triplets"]
+        common_triplets = data["common_triplets"]
+
+        print(f"\n########## {difficulty} ##########")
+
+        # ---------------------------------
+        # games_data triplets counts
+        # ---------------------------------
+        # print("\nTriplets from games_data and their counts in CSV:")
+
+        # for triplet in sorted(expected_triplets):
+
+        #     count = observed_counter.get(triplet, 0)
+
+        #     print(f"{triplet} -> {count} times")
+
+        # ---------------------------------
+        # Unique observed triplets
+        # ---------------------------------
+        print(f"\nTotal UNIQUE observed triplets in CSV: {len(observed_set)}")
+
+        # for triplet in sorted(observed_set):
+        #     print(f"{triplet} -> {observed_counter[triplet]} times")
+
+        # ---------------------------------
+        # Common triplets
+        # ---------------------------------
+        print("\nCOMMON triplets (appear in both games_data and CSV):")
+
+        # if len(common_triplets) == 0:
+        #     print("None")
+
+        # else:
+        #     for triplet in sorted(common_triplets):
+        #         print(f"{triplet} -> {observed_counter[triplet]} times")
+
+        print(f"\nTotal COMMON unique triplets: {len(common_triplets)}")
+
+
+#! NO ES 100% EL NUMERO TOTAL TRIPLETS CORRECTOS, TENGO QUE CONTAR LOS TRILPETS QUE ESTAN MAL CONTESTADOS, PORQUE AQUÍ SALNE COMO 2 DIFERENTES PERO EN REALIDAD SON EL MISMO TRIPLET PERO CON LOS SIMILARES INTERCAMBIADOS, ASÍ QUE HAY QUE CONTAR CUÁNTOS DE LOS TRIPLETS DE games_data APARECEN EN LA CSV, INDEPENDIENTEMENTE DE SI LOS SIMILARES ESTÁN INTERCAMBIADOS O NO.
+

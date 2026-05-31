@@ -11,12 +11,12 @@ import cy_tste
 # CONFIG
 # =========================================================
 GAMES = ["pacman", "pong", "spaceinvaders"]
-METHOD = "euclidean"
+METHOD = "euclidean" # "euclidean"
 
 BASE_RDM_FOLDER = "../data/test_16_rdms/buenos_25/" #"../data/test_16_rdms/big_rdm_equal_size/"
 MAP_FOLDER = "../data/maps/buenos_25/" #"../data/maps/big_rdm/"
 CLIP_BASE_FOLDER = "../data/test_16_clips/" #"../data/test_16_clips/big_rdm"
-SAVE_FOLDER = "../data/triplet_visualization_subset/sa_subsets_buenos_25/" #"../data/triplet_visualization_subset/sa_subsets/"
+SAVE_FOLDER = "../data/triplet_visualization_subset/sa_subsets_buenos_25/fully_connected/" #"../data/triplet_visualization_subset/sa_subsets/"
 
 # 👇 NEW: where SA results are stored
 SA_FOLDER = "../data/sa_results/buenos_25/"
@@ -106,7 +106,7 @@ for game in GAMES:
     rdm_path = os.path.join(
         BASE_RDM_FOLDER,
         game,
-        f"{game}_conv3_{METHOD}_RDM.npy"
+        f"{game}_fc0_{METHOD}_RDM.npy" #f"{game}_conv3_{METHOD}_RDM.npy"
     )
 
     if not os.path.exists(rdm_path):

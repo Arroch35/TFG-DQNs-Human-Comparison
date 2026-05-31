@@ -9,15 +9,15 @@ games = ["pacman",
          "pong", 
          "spaceinvaders"
          ]
-base_input_folder = "../data/test_16_clips/" #"../data/test_16_clips/big_rdm" #"../data/clips"
+base_input_folder = "../data/test_16_clips/pca_training/" #"../data/test_16_clips/" #"../data/test_16_clips/big_rdm" #"../data/clips"
 n_frames_to_extract = 16
 
 # =========================
 # PROCESS ALL GAMES
 # =========================
 for game in games:
-    input_folder = os.path.join(base_input_folder, game, "buenos_25") #, "buenos", "pilot"
-    output_folder = os.path.join("../data/test_16_arrays/buenos_25", game) #"../data/frame_arrays"
+    input_folder = os.path.join(base_input_folder, game) #, "buenos", "pilot" , game, "buenos_25"
+    output_folder = os.path.join("../data/test_16_arrays/pca_training", game) #"../data/frame_arrays" buenos_25
     os.makedirs(output_folder, exist_ok=True)
 
     clip_files = [f for f in os.listdir(input_folder) if f.endswith(".mp4")]

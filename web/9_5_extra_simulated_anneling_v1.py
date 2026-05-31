@@ -7,8 +7,8 @@ import os
 # CONFIG
 # =========================================================
 GAMES = ["pacman", "pong", "spaceinvaders"]
-
-BASE_RDM_FOLDER = "../data/test_16_rdms/buenos_25/" #"../data/test_16_rdms/big_rdm_equal_size"
+SEED = "seed_42"
+BASE_RDM_FOLDER =  f"../data/test_16_rdms/buenos_25/{SEED}/" #"../data/test_16_rdms/big_rdm_equal_size"
 
 N_SELECT = 15
 K_NEIGHBORS = 10
@@ -18,7 +18,7 @@ T_MIN = 1e-4
 DECAY = 0.9995
 N_STEPS = 50000
 
-SAVE_FOLDER = "../data/sa_results/buenos_25/" #"../data/sa_results"
+SAVE_FOLDER = f"../data/sa_results/buenos_25/{SEED}/" #"../data/sa_results"
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
 # =========================================================
@@ -121,7 +121,7 @@ for game in GAMES:
     rdm_path = os.path.join(
         BASE_RDM_FOLDER,
         game,
-        f"{game}_conv3_euclidean_RDM.npy"
+        f"{game}_fc_correlation_RDM.npy"
     )
 
     if not os.path.exists(rdm_path):

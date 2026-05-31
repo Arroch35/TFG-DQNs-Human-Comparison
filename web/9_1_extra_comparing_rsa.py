@@ -41,18 +41,18 @@ def compare_second_order_rsa(folder1, folder2, filename):
     print(f"Similarity between RSA structures: {corr}")
 
 # --- Configuration ---
-methods=["correlation", "euclidean"]
+methods=["correlation"] #["correlation", "euclidean"]
 games=["pong","pacman","spaceinvaders"]
-
-base_folder_a = "../data/test_16_rdms/"
+SEED="seed_42"
+base_folder_a = "../data/test_16_rdms/pilot/"
 base_folder_b = "../data/test_16_rdms/big_rdm_equal_size/"
 
 
 
 for game in games:
     for method in methods:
-        folder_experiment=os.path.join(base_folder_a, game)
-        folder_big_rdms=os.path.join(base_folder_b, game)
+        folder_experiment=os.path.join(base_folder_a, SEED, game)
+        folder_big_rdms=os.path.join(base_folder_b, SEED, game)
 
         target_file = f"{game}_DQN_layer_RSA_{method}_matrix.npy" # The name shared by both files
 

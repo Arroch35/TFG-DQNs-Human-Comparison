@@ -1,113 +1,14 @@
-# import pandas as pd
-# import numpy as np
+import os
 
-# # =========================================================
-# # CONFIG
-# # =========================================================
-# CSV_PATH = r"C:\Users\arroc\OneDrive\Escritorio\Apuntes\UAB\4th_year\TFG\Code_repo\data\triplet_visualization_subset\selected_15\seed_42\filtered_all_difficulties\pacman\hard_triplets.csv"
+import pandas as pd
+from collections import Counter
+import json
 
-# # =========================================================
-# # LOAD CSV
-# # =========================================================
-# df = pd.read_csv(CSV_PATH)
+# Paths
+triplets_folder = "../data/triplets_results/final_experiment/cleaned_results/all_participants_triplets.csv"
+maps = "../data/maps/selected_15/{game}_clip_map.csv"
 
-# # =========================================================
-# # CONVERT TO MATRIX
-# # =========================================================
-# triplet_matrix = df[
-#     ["similar1", "similar2", "odd"]
-# ].to_numpy(dtype=np.int32)
-
-# # =========================================================
-# # PRINT
-# # =========================================================
-# print("Triplet matrix shape:")
-# print(triplet_matrix.shape)
-
-# print("\nTriplet matrix:\n")
-
-# print("[")
-# for row in triplet_matrix:
-
-#     print(f"[{row[0]}, {row[1]}, {row[2]}],")
-
-# print("]")
-
-
-import random
-
-def sample_triplet(games_data, game_name):
-
-    # =====================================================
-    # SELECT RANDOM DIFFICULTY
-    # =====================================================
-    difficulties = [
-        "easy_triplets",
-        "medium_triplets",
-        "hard_triplets"
-    ]
-
-    difficulty = random.choice(
-        difficulties
-    )
-
-    # =====================================================
-    # GET TRIPLETS
-    # =====================================================
-    triplets = games_data[
-        game_name
-    ][difficulty]
-
-    # =====================================================
-    # SELECT RANDOM TRIPLET
-    # =====================================================
-    selected_triplet = random.choice(
-        triplets
-    )
-
-    i, j, k = selected_triplet
-
-    # =====================================================
-    # GET CLIPS
-    # =====================================================
-    # clips = games_data[
-    #     game_name
-    # ]["clips"]
-
-    # similar1 = clips[i]
-    # similar2 = clips[j]
-    # odd = clips[k]
-
-    # =====================================================
-    # RANDOMIZE DISPLAY ORDER
-    # =====================================================
-    randomized_triplet = [
-        {
-            "clip": i,
-            "role": "similar"
-        },
-        {
-            "clip": j,
-            "role": "similar"
-        },
-        {
-            "clip": k,
-            "role": "odd"
-        }
-    ]
-
-    random.shuffle(
-        randomized_triplet
-    )
-
-    # =====================================================
-    # RETURN
-    # =====================================================
-    return {
-        "game": game_name,
-        "difficulty": difficulty,
-        "triplet": randomized_triplet
-    }
+games = ["pacman", "pong", "spaceinvaders"]
 
 games_data = {
   "PongNoFrameskip-v4": {
@@ -803,9 +704,124 @@ games_data = {
   }
 }
 
-result = sample_triplet(
-    games_data,
-    "SpaceInvadersNoFrameskip-v4"
-)
+# -----------------------------
+# LOAD MAIN CSV
+# -----------------------------
+df = pd.read_csv(triplets_folder)
 
-print(result)
+# -----------------------------
+# LOAD ALL MAPS
+# clip_name -> clip_index
+# -----------------------------
+all_maps = {}
+
+game_name_to_map = {
+    "PongNoFrameskip-v4": "pong",
+    "SpaceInvadersNoFrameskip-v4": "spaceinvaders",
+    "MsPacmanNoFrameskip-v4": "pacman",
+}
+
+for full_game_name, short_game_name in game_name_to_map.items():
+
+    map_path = maps.format(game=short_game_name)
+    map_df = pd.read_csv(map_path)
+
+    clip_to_idx = dict(zip(
+        map_df["clip_name"].str.strip(),
+        map_df["clip_index"]
+    ))
+
+    all_maps[full_game_name] = clip_to_idx
+
+# -------------------------------------------------------
+# FINAL STRUCTURE
+# -------------------------------------------------------
+common_games_data = {}
+
+# -----------------------------
+# PROCESS
+# -----------------------------
+for game_name in games_data.keys():
+
+    common_games_data[game_name] = {}
+
+    game_df = df[df["game_name"] == game_name].copy()
+
+    clip_to_idx = all_maps[game_name]
+
+    for difficulty in ["easy_triplets", "medium_triplets", "hard_triplets"]:
+
+        diff_df = game_df[game_df["difficulty"] == difficulty]
+
+        # ---------------------------------
+        # OBSERVED TRIPLETS (CSV)
+        # ---------------------------------
+        observed_set = set()
+
+        for _, row in diff_df.iterrows():
+
+            try:
+                s1 = int(clip_to_idx[row["similar_clip_1"].strip()])
+                s2 = int(clip_to_idx[row["similar_clip_2"].strip()])
+                odd = int(clip_to_idx[row["odd_clip"].strip()])
+
+                observed_set.add(tuple(sorted([s1, s2, odd])))
+
+            except KeyError:
+                print("Missing clip in mapping:")
+                print(row)
+
+        # ---------------------------------
+        # EXPECTED TRIPLETS (games_data)
+        # ---------------------------------
+        expected_set = {
+            tuple(sorted(t)) for t in games_data[game_name][difficulty]
+        }
+
+        # ---------------------------------
+        # TRUE INTERSECTION (IMPORTANT FIX)
+        # ---------------------------------
+        common_set = expected_set & observed_set
+
+        # ---------------------------------
+        # REBUILD ORIGINAL ORDERED TRIPLETS
+        # ---------------------------------
+        matching_triplets = [
+            t for t in games_data[game_name][difficulty]
+            if tuple(sorted(t)) in common_set
+        ]
+
+        common_games_data[game_name][difficulty] = matching_triplets
+
+# -----------------------------
+# PRINT FINAL STRUCTURE
+# -----------------------------
+print("\nCOMMON GAMES DATA:")
+print("=" * 80)
+
+for game_name, difficulties in common_games_data.items():
+
+    print(f"\n{game_name}")
+
+    for difficulty, triplets in difficulties.items():
+
+        print(f"\n  {difficulty}")
+        print(f"  Total triplets: {len(triplets)}")
+
+        # for t in triplets:
+        #     print(f"    {t}")
+
+# -----------------------------
+# FULL STRUCTURE
+# -----------------------------
+print("\n\nFULL DATA STRUCTURE:\n")
+print(common_games_data)
+
+file_path = "../data/jsons/common_games_data.json"
+
+# 4. Automatically create the directory if it doesn't exist
+os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+
+with open(file_path, "w") as file:
+    json.dump(common_games_data, file)

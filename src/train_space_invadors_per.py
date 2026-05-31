@@ -4,14 +4,15 @@ import torch
 import wandb
 import os
 from stable_baselines3 import DQN
-from stable_baselines3.common.vec_env import VecFrameStack, SubprocVecEnv, DummyVecEnv
+from stable_baselines3.common.vec_env import VecFrameStack, SubprocVecEnv
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, StopTrainingOnRewardThreshold
 from stable_baselines3.common.atari_wrappers import AtariWrapper
 from stable_baselines3.common.monitor import Monitor
 from wandb.integration.sb3 import WandbCallback
 
 from src.models.custom_dqn import CustomCNN
-from src.wrappers.environment_wrappers import RestrictMsPacmanActions
+from src.models.per_dqn import PERDQN
+from src.wrappers.environment_wrappers import RestrictSpaceInvadorsActions
 import argparse
 
 # =========================================================
@@ -21,11 +22,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int, default=0)
 args = parser.parse_args()
 
-GAME =  "MsPacmanNoFrameskip-v4" # "PongNoFrameskip-v4"
+GAME = "SpaceInvadersNoFrameskip-v4" 
 TOTAL_TIMESTEPS = 25_000_000
 CHECKPOINT_FREQ = 500_000
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-N_ENVS = 1  # Number of parallel environments
+N_ENVS = 4  # Number of parallel environments
 
 # =========================================================
 # ENVIRONMENT FUNCTION
@@ -34,7 +35,7 @@ def make_env(seed_offset=0):
     def _init():
         env = gym.make(GAME)
         env = AtariWrapper(env)
-        env = RestrictMsPacmanActions(env)
+        env = RestrictSpaceInvadorsActions(env)
         env = Monitor(env)
         env.reset(seed=args.seed + seed_offset)
         return env
@@ -54,24 +55,12 @@ def train():
     env = SubprocVecEnv([make_env(i) for i in range(N_ENVS)])
     env = VecFrameStack(env, n_stack=4)
 
-    obs = env.reset()
-    print("obs shape after wrappers:", obs.shape)
-    print("obs dtype:", obs.dtype)
-    print("obs min/max:", obs.min(), obs.max())
-
     # ------------------------------
     # Evaluation Environment
     # ------------------------------
     eval_env = SubprocVecEnv([make_env(1000)])  # separate seed for eval
     eval_env = VecFrameStack(eval_env, n_stack=4)
     
-    print("Train obs space:", env.observation_space)
-    print("Eval obs space:", eval_env.observation_space)
-    print("Train action space:", env.action_space)
-    print("Eval action space:", eval_env.action_space)
-    print("Train env type:", type(env))
-    print("Eval env type:", type(eval_env))
-
     print("Num envs:", env.num_envs)
     
     import time
@@ -86,15 +75,11 @@ def train():
     end = time.time()
     print("Steps/sec:", 100 * env.num_envs / (end - start))
 
-    print("obs shape after wrappers:", obs.shape)
-    print("obs dtype:", obs.dtype)
-    print("obs min/max:", obs.min(), obs.max())
-
     # ------------------------------
     # Callbacks & WandB
     # ------------------------------
     run = wandb.init(
-        project="dqn-pacman-cluster",
+        project="dqn-per-spaceInvadors-cluster",
         name=f"seed_{seed}",
         config={
             "seed": seed,
@@ -110,23 +95,24 @@ def train():
         save_code=True,
     )
 
-    base_path = f"./models/{GAME}/seed_{seed}/"
+
+    base_path = f"./models/{GAME}/per_dqn/seed_{seed}/"
     os.makedirs(base_path, exist_ok=True)
 
     eval_callback = EvalCallback(
         eval_env,
         best_model_save_path=base_path + "best_model/",
         log_path=base_path + "eval_logs/",
-        eval_freq=200_000,
-        n_eval_episodes=10,
-        deterministic=True,
+        eval_freq=100_000,
+        n_eval_episodes=50,
+        deterministic=False,
         render=False,
     )
 
     checkpoint_callback = CheckpointCallback(
         save_freq=CHECKPOINT_FREQ,
         save_path=base_path + "checkpoints/",
-        name_prefix=f"dqn_pacman_seed_{seed}"
+        name_prefix=f"dqn_spaceInvadors_seed_{seed}"
     )
 
     # ------------------------------
@@ -137,22 +123,28 @@ def train():
         features_extractor_kwargs=dict(features_dim=512),
     )
 
-    model = DQN(
+    model = PERDQN(
         "CnnPolicy",
         env,
         seed=seed,
-        batch_size=32,          # increased batch size
+        batch_size=32,
         buffer_size=100_000,
         learning_starts=50_000,
         learning_rate=1e-4,
         gamma=0.99,
         train_freq=4,
-        gradient_steps=1,        # increased gradient steps
+        gradient_steps=1,
         target_update_interval=10_000,
-        exploration_fraction=0.4,
+        exploration_fraction=0.1,
         exploration_final_eps=0.1,
         tensorboard_log="./tensorboard/",
         policy_kwargs=policy_kwargs,
+        
+        per_alpha=0.6,
+        per_beta_start=0.4,
+        per_beta_end=1.0,
+        per_beta_fraction=1.0, # over full training
+
         verbose=1,
         device=DEVICE,
     )

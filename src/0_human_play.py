@@ -19,16 +19,16 @@ from wrappers.custom_atari_wrapper import CustomAtariWrapper
 GAMES = ["PongNoFrameskip-v4", "MsPacmanNoFrameskip-v4", "SpaceInvadersNoFrameskip-v4"]
 GAME = GAMES[2]
 
-SUBJECT_ID = "sub_big_rdm"
+SUBJECT_ID = "sub_training_set_pca"
 BLOCK_INDEX = 1
 BLOCK_DURATION_MINUTES = 15
 FPS = 60
 FRAME_SKIP = 1
-SAVE_FOLDER = "../data/human_plays/big_rdm"
+SAVE_FOLDER = "../data/human_plays/pca_training"
 CHUNK_SIZE = 5000
 
 # 🔴 NEW: FIXED SEED (important for reproducibility)
-SEED = 100
+SEED = 200
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 

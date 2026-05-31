@@ -79,7 +79,7 @@ def train():
     # Callbacks & WandB
     # ------------------------------
     run = wandb.init(
-        project="dqn-pong-cluster",
+        project="dqn-per-pong-cluster",
         name=f"seed_{seed}",
         config={
             "seed": seed,
@@ -100,7 +100,7 @@ def train():
         verbose=1
     )
 
-    base_path = f"./models/{GAME}/seed_{seed}/"
+    base_path = f"./models/{GAME}/per_dqn/seed_{seed}/"
     os.makedirs(base_path, exist_ok=True)
 
     eval_callback = EvalCallback(
@@ -109,7 +109,7 @@ def train():
         log_path=base_path + "eval_logs/",
         eval_freq=100_000,
         n_eval_episodes=20,
-        deterministic=True,
+        deterministic=False,
         render=False,
         callback_on_new_best=stop_callback,
     )
@@ -131,12 +131,19 @@ def train():
     model = PERDQN(
         "CnnPolicy",
         env,
+        seed=seed,
+        batch_size=32,
         buffer_size=100_000,
         learning_starts=50_000,
-        batch_size=32,
+        learning_rate=1e-4,
+        gamma=0.99,
         train_freq=4,
         gradient_steps=1,
-        exploration_final_eps=0.01,
+        target_update_interval=10_000,
+        exploration_fraction=0.1,
+        exploration_final_eps=0.1,
+        tensorboard_log="./tensorboard/",
+        policy_kwargs=policy_kwargs,
 
         per_alpha=0.6,
         per_beta_start=0.4,
@@ -157,6 +164,3 @@ def train():
 
 if __name__ == '__main__':
     train()
-
- 
-#!Per funciona, pero tengo que verlo en el cluster y con que modelos. Tengo que ver tambien que esté bien implementado y con env y buffer size adecuados

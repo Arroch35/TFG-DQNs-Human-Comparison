@@ -31,9 +31,9 @@ GAMES = ["pong", "pacman", "spaceinvaders"]
 
 SEED = "seed_42"
 
-FRAMES_BASE_FOLDER = "../data/test_16_arrays/buenos_25"
+FRAMES_BASE_FOLDER = "../data/test_16_arrays/big_rdm_equal_size"
 
-OUTPUT_FOLDER = f"../data/dqn_state_action_qvalue/{SEED}"
+OUTPUT_FOLDER = f"../data/dqn_state_action_qvalue/{SEED}/big_rdm_equal_size"
 
 MODEL_PATHS = {
     "MsPacmanNoFrameskip-v4": f"../models/MsPacmanNoFrameskip-v4/{SEED}/final_model",
@@ -148,17 +148,20 @@ for game in GAMES:
         [f for f in os.listdir(frames_folder) if f.endswith(".npy")]
     )
 
-    FILTER_CSV = f"../data/subset_selection/{SEED}/{game}_best_subset_indices.csv"
+    FILTER_CSV = None #f"../data/subset_selection/{SEED}/{game}_best_subset_indices.csv"
 
-    filter_df = pd.read_csv(FILTER_CSV)
-    print(filter_df.columns)
-    
-    allowed_names = set(filter_df['clip_name'].astype(str).str.replace(".mp4", "", regex=False))
+    if FILTER_CSV and os.path.exists(FILTER_CSV):
+        filter_df = pd.read_csv(FILTER_CSV)
+        print(filter_df.columns)
+        
+        allowed_names = set(filter_df['clip_name'].astype(str).str.replace(".mp4", "", regex=False))
 
-    clip_files = [
-        f for f in all_clip_files 
-        if f.replace(".npy", "") in allowed_names
-    ]
+        clip_files = [
+            f for f in all_clip_files 
+            if f.replace(".npy", "") in allowed_names
+        ]
+    else:
+        clip_files = all_clip_files
 
     env = make_env(gym_id)
 

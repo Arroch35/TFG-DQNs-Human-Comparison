@@ -11,8 +11,8 @@ from rsatoolbox.rdm import calc_rdm
 # CONFIGURATION
 # =========================
 games = ["pacman", "pong", "spaceinvaders"]
-triplets_dir = "../data/triplets_results/own_data/cleaned_results" #"../data/cleaned_results"
-rdm_dir = "../data/triplets_results/own_data/cleaned_results/rdms_human_experiment_rsa" #"../data/rdms_human_experiment_rsa"
+triplets_dir = "../data/triplets_results/final_experiment/cleaned_results" #"../data/cleaned_results"
+rdm_dir = "../data/triplets_results/final_experiment/cleaned_results/rdms_human_experiment_rsa" #"../data/rdms_human_experiment_rsa"
 lopo_summary_file = "../data/tste_cv_results/all_games_lopo_summary.csv"
 max_iter = 1000
 TICK_STEP = 50  # For heatmap ticks
@@ -32,14 +32,14 @@ os.makedirs(rdm_dir, exist_ok=True)
 #     .sort_values(["mean_test", "std_test"], ascending=[False, True])
 # )
 # best_dimension = best_dims.index[0]
-best_dimension=10
+best_dimension=2
 print(f"Selected best dimension for all games: {best_dimension}")
 
 # =========================
 # 2) TRAIN t-STE AND COMPUTE RDMs USING rsatoolbox
 # =========================
 for game in games:
-    input_file = os.path.join(triplets_dir, f"{game}_tste_constraints.csv")
+    input_file = os.path.join(triplets_dir, f"{game}_triplets_constraints.csv")
     
     if not os.path.exists(input_file):
         print(f"Error: {input_file} not found. Skipping {game}.")

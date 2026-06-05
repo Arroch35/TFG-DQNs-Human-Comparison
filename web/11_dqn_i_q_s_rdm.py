@@ -13,7 +13,7 @@ GAMES = ["pong", "pacman", "spaceinvaders"]
 
 SEED = "seed_42"
 
-BASE_FOLDER = f"../data/dqn_state_action_qvalue/{SEED}"
+BASE_FOLDER = f"../data/dqn_state_action_qvalue/{SEED}/big_rdm_equal_size"
 
 # =========================================================
 # HELPERS
@@ -116,12 +116,12 @@ for game in GAMES:
 
     save_rdm(
         rdm_state,
-        os.path.join(rdms_folder, "state_rdm")
+        os.path.join(rdms_folder, "pixel_rdm")
     )
 
     save_rdm(
         rdm_state_pca,
-        os.path.join(rdms_folder, "state_pca_rdm")
+        os.path.join(rdms_folder, "pixel_pca_rdm")
     )
 
     save_rdm(
@@ -136,7 +136,7 @@ for game in GAMES:
 
     save_rdm(
         rdm_value,
-        os.path.join(rdms_folder, "value_rdm")
+        os.path.join(rdms_folder, "state_value_rdm")
     )
 
     print("Saved all RDMs.")

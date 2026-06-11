@@ -10,7 +10,7 @@ from tqdm import tqdm
 # CONFIG
 # =========================================================
 GAMES = ["pacman", "pong", "spaceinvaders"]
-SEED="seed_42"
+SEED="seed_2"
 ACTIVATIONS_FOLDER = f"../data/test_16_PRUEBAS/pca_training/{SEED}"
 
 SAVE_FOLDER = "../models/pca_models/"

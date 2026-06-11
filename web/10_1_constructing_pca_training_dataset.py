@@ -28,17 +28,9 @@ from src.wrappers.environment_wrappers import (
 
 GAMES = ["pong", "pacman", "spaceinvaders"]
 
-SEED = "seed_42"
+seeds = ["seed_0", "seed_1","seed_2", "seed_3", "seed_42"]
 
 FRAMES_BASE_FOLDER = "../data/test_16_arrays/pca_training"
-
-OUTPUT_FOLDER = f"../data/dqn_state_action_qvalue/{SEED}/pca_training_set"
-
-MODEL_PATHS = {
-    "MsPacmanNoFrameskip-v4": f"../models/MsPacmanNoFrameskip-v4/{SEED}/final_model",
-    "PongNoFrameskip-v4": f"../models/PongNoFrameskip-v4/{SEED}/final_model",
-    "SpaceInvadersNoFrameskip-v4": f"../models/SpaceInvadersNoFrameskip-v4/{SEED}/final_model",
-}
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -47,10 +39,6 @@ GAME_TO_ID = {
     "pong": "PongNoFrameskip-v4",
     "spaceinvaders": "SpaceInvadersNoFrameskip-v4",
 }
-
-FILTER_CSV = ""#f"../data/subset_selection/{SEED}/{game}_best_subset_indices.csv" #? HICE ESTO PARA NO COGER LOS 25 
-
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 # =========================================================
 # ENVIRONMENT
@@ -122,92 +110,103 @@ def dqn_preprocess_from_16_frames(frames_16):
 # MAIN
 # =========================================================
 
-for game in GAMES:
+for seed in seeds:
+    OUTPUT_FOLDER = f"../data/dqn_state_action_qvalue/{seed}/pca_training_set"
 
-    gym_id = GAME_TO_ID[game]
+    MODEL_PATHS = {
+        "MsPacmanNoFrameskip-v4": f"../models/MsPacmanNoFrameskip-v4/{seed}/final_model",
+        "PongNoFrameskip-v4": f"../models/PongNoFrameskip-v4/{seed}/final_model",
+        "SpaceInvadersNoFrameskip-v4": f"../models/SpaceInvadersNoFrameskip-v4/{seed}/final_model",
+    }
 
-    print(f"\nProcessing game: {game}")
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-    frames_folder = os.path.join(FRAMES_BASE_FOLDER, game)
+    for game in GAMES:
 
-    clip_files = sorted(
-        [f for f in os.listdir(frames_folder) if f.endswith(".npy")]
-    )
+        gym_id = GAME_TO_ID[game]
 
-    env = make_env(gym_id)
+        print(f"\nProcessing game: {game}")
 
-    env = VecFrameStack(
-        DummyVecEnv([lambda: env]),
-        n_stack=4
-    )
+        frames_folder = os.path.join(FRAMES_BASE_FOLDER, game)
 
-    policy_kwargs = dict(
-        features_extractor_class=CustomCNN,
-        features_extractor_kwargs=dict(features_dim=512)
-    )
-
-    model = DQN(
-        "CnnPolicy",
-        env,
-        policy_kwargs=policy_kwargs,
-        buffer_size=1,
-        learning_starts=0
-    )
-
-    model.set_parameters(
-        MODEL_PATHS[gym_id],
-        exact_match=True
-    )
-
-    model.policy.to(DEVICE)
-    model.policy.eval()
-
-    game_output_folder = os.path.join(
-        OUTPUT_FOLDER,
-        game
-    )
-
-    os.makedirs(game_output_folder, exist_ok=True)
-
-    # =====================================================
-    # PROCESS CLIPS
-    # =====================================================
-
-    for clip_file in clip_files:
-
-        clip_path = os.path.join(
-            frames_folder,
-            clip_file
+        clip_files = sorted(
+            [f for f in os.listdir(frames_folder) if f.endswith(".npy")]
         )
 
-        clip_name = os.path.splitext(clip_file)[0]
+        env = make_env(gym_id)
 
-        frames_array = np.load(clip_path)
-
-        # -------------------------------------
-        # DQN input
-        # -------------------------------------
-
-        stack = dqn_preprocess_from_16_frames(
-            frames_array
+        env = VecFrameStack(
+            DummyVecEnv([lambda: env]),
+            n_stack=4
         )
 
-        state_vector = stack.flatten()
-
-        # -------------------------------------
-        # Save
-        # -------------------------------------
-
-        save_file = os.path.join(
-            game_output_folder,
-            f"{clip_name}.npz"
+        policy_kwargs = dict(
+            features_extractor_class=CustomCNN,
+            features_extractor_kwargs=dict(features_dim=512)
         )
 
-        np.savez_compressed(
-            save_file,
-            state=state_vector
+        model = DQN(
+            "CnnPolicy",
+            env,
+            policy_kwargs=policy_kwargs,
+            buffer_size=1,
+            learning_starts=0
         )
 
-    print(f"Finished {game}")
+        model.set_parameters(
+            MODEL_PATHS[gym_id],
+            exact_match=True
+        )
 
-print("\nDone.")
+        model.policy.to(DEVICE)
+        model.policy.eval()
+
+        game_output_folder = os.path.join(
+            OUTPUT_FOLDER,
+            game
+        )
+
+        os.makedirs(game_output_folder, exist_ok=True)
+
+        # =====================================================
+        # PROCESS CLIPS
+        # =====================================================
+
+        for clip_file in clip_files:
+
+            clip_path = os.path.join(
+                frames_folder,
+                clip_file
+            )
+
+            clip_name = os.path.splitext(clip_file)[0]
+
+            frames_array = np.load(clip_path)
+
+            # -------------------------------------
+            # DQN input
+            # -------------------------------------
+
+            stack = dqn_preprocess_from_16_frames(
+                frames_array
+            )
+
+            state_vector = stack.flatten()
+
+            # -------------------------------------
+            # Save
+            # -------------------------------------
+
+            save_file = os.path.join(
+                game_output_folder,
+                f"{clip_name}.npz"
+            )
+
+            np.savez_compressed(
+                save_file,
+                state=state_vector
+            )
+
+        print(f"Finished {game}")
+
+    print("\nDone.")

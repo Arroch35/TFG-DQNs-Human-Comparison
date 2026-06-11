@@ -29,17 +29,11 @@ from src.wrappers.environment_wrappers import (
 
 GAMES = ["pong", "pacman", "spaceinvaders"]
 
-SEED = "seed_42"
+seeds = ["seed_0", "seed_1","seed_2", "seed_3", "seed_42"]
 
-FRAMES_BASE_FOLDER = "../data/test_16_arrays/big_rdm_equal_size"
+FRAMES_BASE_FOLDER = "../data/test_16_arrays/buenos_25"
 
-OUTPUT_FOLDER = f"../data/dqn_state_action_qvalue/{SEED}/big_rdm_equal_size"
-
-MODEL_PATHS = {
-    "MsPacmanNoFrameskip-v4": f"../models/MsPacmanNoFrameskip-v4/{SEED}/final_model",
-    "PongNoFrameskip-v4": f"../models/PongNoFrameskip-v4/{SEED}/final_model",
-    "SpaceInvadersNoFrameskip-v4": f"../models/SpaceInvadersNoFrameskip-v4/{SEED}/final_model",
-}
+FILTER_CSV = None #! esto lo tengo mas abajo, cambiar a none cuando haga big rdm
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -49,7 +43,7 @@ GAME_TO_ID = {
     "spaceinvaders": "SpaceInvadersNoFrameskip-v4",
 }
 
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
 
 # =========================================================
 # ENVIRONMENT
@@ -118,12 +112,12 @@ def dqn_preprocess_from_16_frames(frames_16):
 
 
 
-def load_pca_model(game):
+def load_pca_model(game, seed):
 
     path = os.path.join(
         "../models/pca_models/pixel_pca_models",
         game,
-        SEED,
+        seed,
         f"{game}_state_pca.pkl"
     )
 
@@ -136,156 +130,172 @@ def load_pca_model(game):
 # MAIN
 # =========================================================
 
-for game in GAMES:
+for seed in seeds:
 
-    gym_id = GAME_TO_ID[game]
+    print("\n" + "=" * 60)
+    print(f"Processing seed: {seed}")
+    print("=" * 60)
 
-    print(f"\nProcessing game: {game}")
+    OUTPUT_FOLDER = f"../data/dqn_state_action_qvalue/{seed}/selected_subset_15"
 
-    frames_folder = os.path.join(FRAMES_BASE_FOLDER, game)
+    MODEL_PATHS = {
+        "MsPacmanNoFrameskip-v4": f"../models/MsPacmanNoFrameskip-v4/{seed}/final_model",
+        "PongNoFrameskip-v4": f"../models/PongNoFrameskip-v4/{seed}/final_model",
+        "SpaceInvadersNoFrameskip-v4": f"../models/SpaceInvadersNoFrameskip-v4/{seed}/final_model",
+    }
 
-    all_clip_files = sorted(
-        [f for f in os.listdir(frames_folder) if f.endswith(".npy")]
-    )
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-    FILTER_CSV = None #f"../data/subset_selection/{SEED}/{game}_best_subset_indices.csv"
+    for game in GAMES:
 
-    if FILTER_CSV and os.path.exists(FILTER_CSV):
-        filter_df = pd.read_csv(FILTER_CSV)
-        print(filter_df.columns)
-        
-        allowed_names = set(filter_df['clip_name'].astype(str).str.replace(".mp4", "", regex=False))
+        gym_id = GAME_TO_ID[game]
 
-        clip_files = [
-            f for f in all_clip_files 
-            if f.replace(".npy", "") in allowed_names
-        ]
-    else:
-        clip_files = all_clip_files
+        print(f"\nProcessing game: {game}")
 
-    env = make_env(gym_id)
+        frames_folder = os.path.join(FRAMES_BASE_FOLDER, game)
 
-    env = VecFrameStack(
-        DummyVecEnv([lambda: env]),
-        n_stack=4
-    )
-
-    policy_kwargs = dict(
-        features_extractor_class=CustomCNN,
-        features_extractor_kwargs=dict(features_dim=512)
-    )
-
-    model = DQN(
-        "CnnPolicy",
-        env,
-        policy_kwargs=policy_kwargs,
-        buffer_size=1,
-        learning_starts=0
-    )
-
-    model.set_parameters(
-        MODEL_PATHS[gym_id],
-        exact_match=True
-    )
-
-    model.policy.to(DEVICE)
-    model.policy.eval()
-
-    pca, scaler = load_pca_model(game)
-    print(f"Loaded PCA for {game}")
-
-    game_output_folder = os.path.join(
-        OUTPUT_FOLDER,
-        game
-    )
-
-    os.makedirs(game_output_folder, exist_ok=True)
-
-    # =====================================================
-    # PROCESS CLIPS
-    # =====================================================
-
-    for clip_file in clip_files:
-
-        clip_path = os.path.join(
-            frames_folder,
-            clip_file
+        all_clip_files = sorted(
+            [f for f in os.listdir(frames_folder) if f.endswith(".npy")]
         )
 
-        clip_name = os.path.splitext(clip_file)[0]
+        FILTER_CSV = f"../data/subset_selection/seed_42/{game}_best_subset_indices.csv"
 
-        frames_array = np.load(clip_path)
+        if FILTER_CSV and os.path.exists(FILTER_CSV):
+            filter_df = pd.read_csv(FILTER_CSV)
+            print(filter_df.columns)
+            
+            allowed_names = set(filter_df['clip_name'].astype(str).str.replace(".mp4", "", regex=False))
 
-        # -------------------------------------
-        # DQN input
-        # -------------------------------------
+            clip_files = [
+                f for f in all_clip_files 
+                if f.replace(".npy", "") in allowed_names
+            ]
+        else:
+            clip_files = all_clip_files
 
-        stack = dqn_preprocess_from_16_frames(frames_array)
+        env = make_env(gym_id)
 
-        state_vector = stack.flatten()
+        env = VecFrameStack(
+            DummyVecEnv([lambda: env]),
+            n_stack=4
+        )
+
+        policy_kwargs = dict(
+            features_extractor_class=CustomCNN,
+            features_extractor_kwargs=dict(features_dim=512)
+        )
+
+        model = DQN(
+            "CnnPolicy",
+            env,
+            policy_kwargs=policy_kwargs,
+            buffer_size=1,
+            learning_starts=0
+        )
+
+        model.set_parameters(
+            MODEL_PATHS[gym_id],
+            exact_match=True
+        )
+
+        model.policy.to(DEVICE)
+        model.policy.eval()
+
+        pca, scaler = load_pca_model(game, seed)
+        print(f"Loaded PCA for {game}")
+
+        game_output_folder = os.path.join(
+            OUTPUT_FOLDER,
+            game
+        )
+
+        os.makedirs(game_output_folder, exist_ok=True)
 
         # =====================================================
-        # PCA TRANSFORMATION
+        # PROCESS CLIPS
         # =====================================================
 
-        state_vector_reshaped = state_vector.reshape(1, -1)
+        for clip_file in clip_files:
 
-        if scaler is not None:
-            state_vector_reshaped = scaler.transform(state_vector_reshaped)
+            clip_path = os.path.join(
+                frames_folder,
+                clip_file
+            )
 
-        state_pca = pca.transform(state_vector_reshaped)
+            clip_name = os.path.splitext(clip_file)[0]
 
-        state_pca = state_pca.squeeze(0)  # (100,)
+            frames_array = np.load(clip_path)
 
-        # -------------------------------------
-        # Torch input
-        # -------------------------------------
+            # -------------------------------------
+            # DQN input
+            # -------------------------------------
 
-        stack_tensor = torch.tensor(
-            stack[np.newaxis, ...],
-            dtype=torch.float32,
-            device=DEVICE
-        )
+            stack = dqn_preprocess_from_16_frames(frames_array)
 
-        # -------------------------------------
-        # Q-values
-        # -------------------------------------
+            state_vector = stack.flatten()
 
-        with torch.no_grad():
-            q_values = model.policy.q_net(stack_tensor)
+            # =====================================================
+            # PCA TRANSFORMATION
+            # =====================================================
 
-        q_values = q_values.squeeze(0).cpu().numpy()
+            state_vector_reshaped = state_vector.reshape(1, -1)
 
-        # -------------------------------------
-        # Action
-        # -------------------------------------
+            if scaler is not None:
+                state_vector_reshaped = scaler.transform(state_vector_reshaped)
 
-        action = int(np.argmax(q_values))
+            state_pca = pca.transform(state_vector_reshaped)
 
-        # -------------------------------------
-        # State value
-        # -------------------------------------
+            state_pca = state_pca.squeeze(0)  # (100,)
 
-        value = float(np.max(q_values))
+            # -------------------------------------
+            # Torch input
+            # -------------------------------------
 
-        # -------------------------------------
-        # SAVE
-        # -------------------------------------
+            stack_tensor = torch.tensor(
+                stack[np.newaxis, ...],
+                dtype=torch.float32,
+                device=DEVICE
+            )
 
-        save_file = os.path.join(
-            game_output_folder,
-            f"{clip_name}.npz"
-        )
+            # -------------------------------------
+            # Q-values
+            # -------------------------------------
 
-        np.savez_compressed(
-            save_file,
-            state=state_vector,          # original pixels
-            state_pca=state_pca,         # PCA 100D representation
-            action=action,
-            q_values=q_values,
-            value=value
-        )
+            with torch.no_grad():
+                q_values = model.policy.q_net(stack_tensor)
 
-    print(f"Finished {game}")
+            q_values = q_values.squeeze(0).cpu().numpy()
 
-print("\nDone.")
+            # -------------------------------------
+            # Action
+            # -------------------------------------
+
+            action = int(np.argmax(q_values))
+
+            # -------------------------------------
+            # State value
+            # -------------------------------------
+
+            value = float(np.max(q_values))
+
+            # -------------------------------------
+            # SAVE
+            # -------------------------------------
+
+            save_file = os.path.join(
+                game_output_folder,
+                f"{clip_name}.npz"
+            )
+
+            np.savez_compressed(
+                save_file,
+                state=state_vector,          # original pixels
+                state_pca=state_pca,         # PCA 100D representation
+                action=action,
+                q_values=q_values,
+                value=value
+            )
+
+        print(f"Finished {game}")
+
+    print("\nDone.")

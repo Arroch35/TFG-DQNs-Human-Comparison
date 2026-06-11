@@ -4,15 +4,19 @@ import os
 # =========================
 # 1) CONFIGURATION
 # =========================
-triplets_file = "../data/triplets_results/final_experiment/cleaned_results/all_participants_triplets.csv" #"../data/cleaned_results/all_participants_triplets.csv"
+triplets_file = "../data/triplets_results/exp2/cleaned_results/all_participants_triplets.csv" #"../data/cleaned_results/all_participants_triplets.csv"
 games = ["pacman", "spaceinvaders", "pong"]
-output_file = "../data/triplets_results/final_experiment/cleaned_results/all_participants_triplets_indexed.csv" # "../data/cleaned_results/all_participants_triplets_indexed.csv"
+output_file = "../data/triplets_results/exp2/cleaned_results/all_participants_triplets_indexed_with_difficulty.csv" # "../data/cleaned_results/all_participants_triplets_indexed.csv"
 
 game_name_map = {
     "MsPacmanNoFrameskip-v4": "pacman",
     "SpaceInvadersNoFrameskip-v4": "spaceinvaders",
     "PongNoFrameskip-v4": "pong"
 }
+
+game_output_dir="../data/triplets_results/exp2/cleaned_results/"
+
+os.makedirs(game_output_dir, exist_ok=True)
 
 # =========================
 # 2) LOAD MAPPINGS
@@ -64,7 +68,7 @@ if os.path.exists(triplets_file):
         df[f"{col}_idx"] = df.apply(lambda row: get_clip_index(row, col), axis=1)
 
     # We need 'game_name' to do the splitting, then we'll drop it if needed
-    output_columns = ["participant_id", "similar_clip_1_idx", "similar_clip_2_idx", "odd_clip_idx"]
+    output_columns = ["participant_id", "difficulty", "similar_clip_1_idx", "similar_clip_2_idx", "odd_clip_idx"]
 
     # Loop through each game and save a separate file
     for tech_name, short_name in game_name_map.items():
@@ -76,9 +80,8 @@ if os.path.exists(triplets_file):
             final_game_df = game_df[[col for col in output_columns if col in game_df.columns]]
             
             # Create a specific filename (e.g., ../data/cleaned_results/pacman_triplets_indexed.csv)
-            game_output_path = f"../data/triplets_results/final_experiment/cleaned_results/{short_name}_triplets_indexed.csv" #f"../data/cleaned_results/{short_name}_triplets_indexed.csv"
+            game_output_path = os.path.join(game_output_dir, f"{short_name}_triplets_indexed_with_difficulty.csv") #f"../data/cleaned_results/{short_name}_triplets_indexed.csv"
             
-            os.makedirs(os.path.dirname(game_output_path), exist_ok=True)
             final_game_df.to_csv(game_output_path, index=False)
             
             # Validation for this game

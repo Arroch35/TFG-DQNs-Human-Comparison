@@ -27,23 +27,7 @@ from pathlib import Path
 # CONFIGURATION
 # =========================================================
 GAMES = ["pong", "pacman", "spaceinvaders"] # "pacman", , "spaceinvaders"
-SEED="seed_42"
-FRAMES_BASE_FOLDER = "../data/test_16_arrays/big_rdm_equal_size" # "../data/test_16_arrays/big_rdm_equal_size" #"../data/test_16_arrays/buenos_25" # #"../data/frame_arrays"
-OUTPUT_FOLDER =  f"../data/test_16_PRUEBAS/big_rdm_equal_size/{SEED}" #"../data/test_16_PRUEBAS/buenos_25" #"../data/DQN_activations"
-MODEL_PATHS = {
-    "MsPacmanNoFrameskip-v4": f"../models/MsPacmanNoFrameskip-v4/{SEED}/final_model", #best_model/best_model
-    "PongNoFrameskip-v4": f"../models/PongNoFrameskip-v4/{SEED}/final_model", #best_model/best_model
-    "SpaceInvadersNoFrameskip-v4": f"../models/SpaceInvadersNoFrameskip-v4/{SEED}/final_model", #best_model/best_model
-}
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-GAME_TO_ID = {
-    "pacman": "MsPacmanNoFrameskip-v4",
-    "pong": "PongNoFrameskip-v4",
-    "spaceinvaders": "SpaceInvadersNoFrameskip-v4"
-}
-
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+seeds = ["seed_0", "seed_1", "seed_2", "seed_3"]  #, "seed_42" ["seed_0", "seed_1", "seed_2", "seed_3", "seed_4"] --- IGNORE ---
 
 
 # =========================================================
@@ -138,58 +122,76 @@ def register_hooks(model):
 # =========================================================
 # PROCESS ALL GAMES
 # =========================================================
-for game in GAMES:
-    # 1. Folders use the short name (pacman, pong, spaceinvaders)
-    frames_folder = os.path.join(FRAMES_BASE_FOLDER, game)
-    
-    # 2. Get the technical ID for gym.make()
-    gym_id = GAME_TO_ID[game]
-    print(gym_id)
+for seed in seeds:
 
-    clip_files = [f for f in os.listdir(frames_folder) if f.endswith(".npy")]
-    print(f"\nProcessing {len(clip_files)} clips for game: {game}")
+    FRAMES_BASE_FOLDER = "../data/test_16_arrays/buenos_25" # "../data/test_16_arrays/big_rdm_equal_size" #"../data/test_16_arrays/buenos_25" # #"../data/frame_arrays"
+    OUTPUT_FOLDER =  f"../data/test_16_PRUEBAS/buenos_25/{seed}" #"../data/test_16_PRUEBAS/buenos_25" #"../data/DQN_activations"
+    MODEL_PATHS = {
+        "MsPacmanNoFrameskip-v4": f"../models/MsPacmanNoFrameskip-v4/{seed}/final_model", #best_model/best_model
+        "PongNoFrameskip-v4": f"../models/PongNoFrameskip-v4/{seed}/final_model", #best_model/best_model
+        "SpaceInvadersNoFrameskip-v4": f"../models/SpaceInvadersNoFrameskip-v4/{seed}/final_model", #best_model/best_model
+    }
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # Create environment & model
-    env = make_env(gym_id)
-    env = VecFrameStack(DummyVecEnv([lambda: env]), n_stack=4)
+    GAME_TO_ID = {
+        "pacman": "MsPacmanNoFrameskip-v4",
+        "pong": "PongNoFrameskip-v4",
+        "spaceinvaders": "SpaceInvadersNoFrameskip-v4"
+    }
 
-    policy_kwargs = dict(features_extractor_class=CustomCNN, features_extractor_kwargs=dict(features_dim=512))
-    model = DQN("CnnPolicy", env, policy_kwargs=policy_kwargs, buffer_size=1, learning_starts=0)
-    model.set_parameters(MODEL_PATHS[gym_id], exact_match=True)
-    model.policy.to(DEVICE)
-    model.policy.eval()
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    for game in GAMES:
+        # 1. Folders use the short name (pacman, pong, spaceinvaders)
+        frames_folder = os.path.join(FRAMES_BASE_FOLDER, game)
+        
+        # 2. Get the technical ID for gym.make()
+        gym_id = GAME_TO_ID[game]
+        print(gym_id)
 
-    activations = register_hooks(model) #register hooks once per model
+        clip_files = [f for f in os.listdir(frames_folder) if f.endswith(".npy")]
+        print(f"\nProcessing {len(clip_files)} clips for game: {game}")
 
-    for clip_file in clip_files:
+        # Create environment & model
+        env = make_env(gym_id)
+        env = VecFrameStack(DummyVecEnv([lambda: env]), n_stack=4)
 
-        # Reset activations for this clip
-        for key in activations:
-            activations[key] = []
+        policy_kwargs = dict(features_extractor_class=CustomCNN, features_extractor_kwargs=dict(features_dim=512))
+        model = DQN("CnnPolicy", env, policy_kwargs=policy_kwargs, buffer_size=1, learning_starts=0)
+        model.set_parameters(MODEL_PATHS[gym_id], exact_match=True)
+        model.policy.to(DEVICE)
+        model.policy.eval()
 
-        clip_path = os.path.join(frames_folder, clip_file)
-        clip_name = os.path.splitext(clip_file)[0]
-        frames_array = np.load(clip_path)  # shape: (4, H, W, 3)
+        activations = register_hooks(model) #register hooks once per model
 
-        # Preprocess and stack
-        stack = dqn_preprocess_from_16_frames(frames_array)
-        stack = stack[np.newaxis, ...]  # shape (1, 4, 84, 84)
-        stack_tensor = torch.tensor(stack, dtype=torch.float32).to(DEVICE)
+        for clip_file in clip_files:
 
-        # Forward pass
-        with torch.no_grad():
-            _ = model.policy.q_net.features_extractor(stack_tensor)
+            # Reset activations for this clip
+            for key in activations:
+                activations[key] = []
 
-        # Save activations per layer
-        final_activations = {}
-        for layer_name, acts in activations.items():
-            matrix = np.concatenate(acts, axis=0)
-            key_name = f"{clip_name}_{layer_name}"
-            final_activations[key_name] = matrix
-            #print(f"{key_name} shape: {matrix.shape}")
+            clip_path = os.path.join(frames_folder, clip_file)
+            clip_name = os.path.splitext(clip_file)[0]
+            frames_array = np.load(clip_path)  # shape: (4, H, W, 3)
 
-        save_file = os.path.join(OUTPUT_FOLDER, f"{clip_name}_activations.npz")
-        np.savez_compressed(save_file, **final_activations)
-        #print(f"Saved activations: {save_file}")
+            # Preprocess and stack
+            stack = dqn_preprocess_from_16_frames(frames_array)
+            stack = stack[np.newaxis, ...]  # shape (1, 4, 84, 84)
+            stack_tensor = torch.tensor(stack, dtype=torch.float32).to(DEVICE)
 
-print("\nAll clips processed with game-specific restricted actions.")
+            # Forward pass
+            with torch.no_grad():
+                _ = model.policy.q_net.features_extractor(stack_tensor)
+
+            # Save activations per layer
+            final_activations = {}
+            for layer_name, acts in activations.items():
+                matrix = np.concatenate(acts, axis=0)
+                key_name = f"{clip_name}_{layer_name}"
+                final_activations[key_name] = matrix
+                #print(f"{key_name} shape: {matrix.shape}")
+
+            save_file = os.path.join(OUTPUT_FOLDER, f"{clip_name}_activations.npz")
+            np.savez_compressed(save_file, **final_activations)
+            #print(f"Saved activations: {save_file}")
+
+    print("\nAll clips processed with game-specific restricted actions.")

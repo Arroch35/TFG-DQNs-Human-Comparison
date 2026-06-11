@@ -586,109 +586,120 @@ for game in GAMES:
     # =====================================================
     # SAVE RESULTS
     # =====================================================
-    game_out = os.path.join(
-        SAVE_FOLDER,
-        game
-    )
+    # game_out = os.path.join(
+    #     SAVE_FOLDER,
+    #     game
+    # )
 
-    os.makedirs(game_out, exist_ok=True)
+    # os.makedirs(game_out, exist_ok=True)
 
 
-    # =====================================================
-    # SAVE CLIP INDEX MAP
-    # =====================================================
-    clip_map_csv = os.path.join(
-        game_out,
-        f"{game}_clip_index_map.csv"
-    )
+    # # =====================================================
+    # # SAVE CLIP INDEX MAP
+    # # =====================================================
+    # clip_map_csv = os.path.join(
+    #     game_out,
+    #     f"{game}_clip_index_map.csv"
+    # )
 
-    save_clip_index_map(
-        subset_df,
-        clip_map_csv
-    )
+    # save_clip_index_map(
+    #     subset_df,
+    #     clip_map_csv
+    # )
 
-    with open(
-        os.path.join(game_out, "best_score.txt"),
-        "w"
-    ) as f:
+    # with open(
+    #     os.path.join(game_out, "best_score.txt"),
+    #     "w"
+    # ) as f:
 
-        f.write(f"{best_score:.6f}")
+    #     f.write(f"{best_score:.6f}")
 
-    # =====================================================
-    # SAVE TRIPLETS
-    # =====================================================
-    used_clips = set()
+    # # =====================================================
+    # # SAVE TRIPLETS
+    # # =====================================================
+    # used_clips = set()
 
-    difficulty_sets = {
-        "easy": easy_triplets,
-        "medium": medium_triplets,
-        "hard": hard_triplets
-    }
+    # difficulty_sets = {
+    #     "easy": easy_triplets,
+    #     "medium": medium_triplets,
+    #     "hard": hard_triplets
+    # }
 
-    for difficulty_name, triplets_array in (
-        difficulty_sets.items()
-    ):
+    # for difficulty_name, triplets_array in (
+    #     difficulty_sets.items()
+    # ):
+# Hard triplets: 0.0172 to 0.0400
+# Medium triplets: 0.0582 to 0.0873
+# Easy triplets: 0.2073 to 0.9427
 
-        # =================================================
-        # SAVE TRIPLET CSV
-        # =================================================
-        triplet_csv_path = os.path.join(
-            game_out,
-            f"{difficulty_name}_triplets.csv"
-        )
+# Hard triplets: 0.0483 to 0.1026
+# Medium triplets: 0.1501 to 0.2087
+# Easy triplets: 0.3774 to 0.7772
 
-        save_triplet_csv(
-            triplets_array,
-            triplet_csv_path
-        )
+# Hard triplets: 0.0536 to 0.1037
+# Medium triplets: 0.1427 to 0.1819
+# Easy triplets: 0.2636 to 0.7197
 
-        save_triplets(
-            triplets_array=triplets_array,
-            difficulty_name=difficulty_name,
-            game_out=game_out,
-            new_to_orig=new_to_orig,
-            index_to_clip=index_to_clip,
-            used_clips=used_clips,
-            game=game
-        )
+    #     # =================================================
+    #     # SAVE TRIPLET CSV
+    #     # =================================================
+    #     triplet_csv_path = os.path.join(
+    #         game_out,
+    #         f"{difficulty_name}_triplets.csv"
+    #     )
 
-    # =====================================================
-    # COPY UNIQUE CLIPS
-    # =====================================================
-    print("\nCopying unique clips...")
+    #     save_triplet_csv(
+    #         triplets_array,
+    #         triplet_csv_path
+    #     )
 
-    clips_out = os.path.join(
-        game_out,
-        "clips"
-    )
+    #     save_triplets(
+    #         triplets_array=triplets_array,
+    #         difficulty_name=difficulty_name,
+    #         game_out=game_out,
+    #         new_to_orig=new_to_orig,
+    #         index_to_clip=index_to_clip,
+    #         used_clips=used_clips,
+    #         game=game
+    #     )
 
-    os.makedirs(clips_out, exist_ok=True)
+    # # =====================================================
+    # # COPY UNIQUE CLIPS
+    # # =====================================================
+    # print("\nCopying unique clips...")
 
-    for clip_name in tqdm(used_clips):
+    # clips_out = os.path.join(
+    #     game_out,
+    #     "clips"
+    # )
 
-        src = os.path.join(
-            CLIP_BASE_FOLDER,
-            game,
-            "buenos_25/human_dqn_visualitzation",
-            clip_name
-        )
+    # os.makedirs(clips_out, exist_ok=True)
 
-        dst = os.path.join(
-            clips_out,
-            clip_name
-        )
+    # for clip_name in tqdm(used_clips):
 
-        try:
+    #     src = os.path.join(
+    #         CLIP_BASE_FOLDER,
+    #         game,
+    #         "buenos_25/human_dqn_visualitzation",
+    #         clip_name
+    #     )
 
-            if not os.path.exists(dst):
+    #     dst = os.path.join(
+    #         clips_out,
+    #         clip_name
+    #     )
 
-                shutil.copy(src, dst)
+    #     try:
 
-        except Exception as e:
+    #         if not os.path.exists(dst):
 
-            print(
-                f"Error copying clip "
-                f"{clip_name}: {e}"
-            )
+    #             shutil.copy(src, dst)
+
+    #     except Exception as e:
+
+    #         print(
+    #             f"Error copying clip "
+    #             f"{clip_name}: {e}"
+    #         )
 
 print("\nDONE.")

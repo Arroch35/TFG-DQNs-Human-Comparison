@@ -269,23 +269,12 @@ for game_name in games:
 # 4) SAVE COMBINED RESULTS
 # =========================
 if all_fold_results:
-    all_fold_results_df = pd.concat(all_fold_results, ignore_index=True)
+    all_fold_results_df = pd.concat(all_fold_results, ignore_index=True).round(4)
     all_fold_results_df.to_csv(os.path.join(base_output_dir, "all_games_lopo_fold_results.csv"), index=False)
 
 if all_summary_results:
-    all_summary_results_df = pd.concat(all_summary_results, ignore_index=True)
+    all_summary_results_df = pd.concat(all_summary_results, ignore_index=True).round(4)
     all_summary_results_df.to_csv(os.path.join(base_output_dir, "all_games_lopo_summary.csv"), index=False)
 
     print("\n===== FINAL SUMMARY =====")
     print(all_summary_results_df.sort_values(["game", "mean_test_accuracy"], ascending=[True, False]))
-
-#TODO: Parece que funciona. Ahora tengo que hacer el script de los csvs que los coja en bucle y los meta todos en uno, teniendo en cuento un ID de la persona, para que luego sea mas facil quitar los que no quiero segun la enquesta
-#TODO: Aquí tendré que usar pandas para que en vez del video me de el índice y lo cree en una variable u otro csv para mapear indice y video
-#TODO: Mirar como usar bien la funcion
-#TODO: Entrenar bien los DQNs segun fuente fiables, y que sean varios para hacer medias
-#TODO: Poner en todos lados qeu se lea un folder, que se cree tambien
-
-#TODO: Despues de cenar, buscar y entrenar DQN para los juegos. CON SEMILLAS DISTINTAS
-#TODO: Mañana: Hacer esto en bucle para los 3 juegos, hacer las RDMs para esto y las RDMs para los DQNs, y luego el RSA
-#TODO: Probar de quitar a personas, a ver si los resultados mejoran
-#!Esto no se muy bien como fucniona aún, porque esto es machine learning, y se supone que no debe haver overfiting y tal, así que mira muy bien como funciona

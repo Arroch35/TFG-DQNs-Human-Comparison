@@ -3,12 +3,12 @@ import pandas as pd
 # =========================
 # CONFIG
 # =========================
-games=["pacman", "pong", "spaceinvaders"]
+games=["pacman", "pong", "spaceinvaders" ] #"pacman", , "spaceinvaders"
 
 for game in games:
 
-    input_csv = f"../data/triplets_results/final_experiment/cleaned_results/{game}_triplets_indexed.csv" #f"../data/cleaned_results/{game}_triplets_indexed.csv"
-    output_csv = f"../data/triplets_results/final_experiment/cleaned_results/{game}_triplets_constraints.csv" #f"../data/cleaned_results/{game}_triplets_constraints.csv"
+    input_csv = f"../data/triplets_results/exp2/cleaned_results/{game}_triplets_indexed_with_difficulty.csv" #f"../data/cleaned_results/{game}_triplets_indexed.csv"
+    output_csv = f"../data/triplets_results/exp2/cleaned_results/{game}_triplets_constraints_with_difficulty.csv" #f"../data/cleaned_results/{game}_triplets_constraints.csv"
 
     # =========================
     # LOAD ORIGINAL CSV
@@ -28,6 +28,7 @@ for game in games:
 
     for _, row in df.iterrows():
         participant = row["participant_id"]
+        difficulty = row.get("difficulty", "unknown")  # Keep difficulty if it exists
         sim1 = int(row["similar_clip_1_idx"])
         sim2 = int(row["similar_clip_2_idx"])
         odd = int(row["odd_clip_idx"])
@@ -37,7 +38,8 @@ for game in games:
             "participant_id": participant,
             "reference": sim1,
             "near": sim2,
-            "far": odd
+            "far": odd,
+            "difficulty": difficulty
         })
 
         # Constraint 2: sim2 is closer to sim1 than to odd
@@ -45,7 +47,8 @@ for game in games:
             "participant_id": participant,
             "reference": sim2,
             "near": sim1,
-            "far": odd
+            "far": odd,
+            "difficulty": difficulty
         })
 
     # Create output DataFrame

@@ -39,7 +39,7 @@ print(f"Selected best dimension for all games: {best_dimension}")
 # 2) TRAIN t-STE AND COMPUTE RDMs USING rsatoolbox
 # =========================
 for game in games:
-    input_file = os.path.join(triplets_dir, f"{game}_triplets_constraints.csv")
+    input_file = os.path.join(triplets_dir, f"{game}_triplets_constraints_with_difficulty.csv")
     
     if not os.path.exists(input_file):
         print(f"Error: {input_file} not found. Skipping {game}.")

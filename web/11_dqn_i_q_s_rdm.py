@@ -11,9 +11,8 @@ from rsatoolbox.rdm import calc_rdm
 
 GAMES = ["pong", "pacman", "spaceinvaders"]
 
-SEED = "seed_42"
+seeds = ["seed_0", "seed_2"]
 
-BASE_FOLDER = f"../data/dqn_state_action_qvalue/{SEED}/big_rdm_equal_size"
 
 # =========================================================
 # HELPERS
@@ -37,108 +36,116 @@ def save_rdm(rdm, save_base):
 # MAIN
 # =========================================================
 
-for game in GAMES:
+for seed in seeds:
 
     print("\n" + "=" * 60)
-    print(game)
-    print("=" * 60)
+    print(f"Processing seed: {seed}")
+    print("=" * 60) 
 
-    input_folder = os.path.join(BASE_FOLDER, game)
+    BASE_FOLDER = f"../data/dqn_state_action_qvalue/{seed}/selected_subset_15" #"../data/dqn_state_action_qvalue/{seed}/big_rdm_equal_size" #"../data/dqn_state_action_qvalue/{seed}/internal_rdms"
 
-    files = sorted([
-        f for f in os.listdir(input_folder)
-        if f.endswith(".npz")
-        and f != "rdms.npz"
-    ])
+    for game in GAMES:
 
-    states = []
-    states_pca = []
-    q_values = []
-    actions = []
-    values = []
+        print("\n" + "=" * 60)
+        print(game)
+        print("=" * 60)
 
-    for file in files:
+        input_folder = os.path.join(BASE_FOLDER, game)
 
-        data = np.load(os.path.join(input_folder, file))
+        files = sorted([
+            f for f in os.listdir(input_folder)
+            if f.endswith(".npz")
+            and f != "rdms.npz"
+        ])
 
-        states.append(data["state"])
-        states_pca.append(data["state_pca"])
-        q_values.append(data["q_values"])
-        actions.append([int(data["action"])])
-        values.append([float(data["value"])])
+        states = []
+        states_pca = []
+        q_values = []
+        actions = []
+        values = []
 
-    states = np.asarray(states)
-    states_pca = np.asarray(states_pca)
-    q_values = np.asarray(q_values)
-    actions = np.asarray(actions)
-    values = np.asarray(values)
+        for file in files:
 
-    print("states:", states.shape)
-    print("states_pca:", states_pca.shape)
-    print("q_values:", q_values.shape)
+            data = np.load(os.path.join(input_folder, file))
 
-    # =====================================================
-    # CREATE DATASETS
-    # =====================================================
+            states.append(data["state"])
+            states_pca.append(data["state_pca"])
+            q_values.append(data["q_values"])
+            actions.append([int(data["action"])])
+            values.append([float(data["value"])])
 
-    ds_state = Dataset(states)
-    ds_state_pca = Dataset(states_pca)
-    ds_qvalues = Dataset(q_values)
-    ds_action = Dataset(actions)
-    ds_value = Dataset(values)
+        states = np.asarray(states)
+        states_pca = np.asarray(states_pca)
+        q_values = np.asarray(q_values)
+        actions = np.asarray(actions)
+        values = np.asarray(values)
 
-    # =====================================================
-    # COMPUTE RDMS
-    # =====================================================
+        print("states:", states.shape)
+        print("states_pca:", states_pca.shape)
+        print("q_values:", q_values.shape)
 
-    print("Computing state RDM...")
-    rdm_state = calc_rdm(ds_state, method='correlation')
+        # =====================================================
+        # CREATE DATASETS
+        # =====================================================
 
-    print("Computing PCA RDM...")
-    rdm_state_pca = calc_rdm(ds_state_pca, method='correlation')
+        ds_state = Dataset(states)
+        ds_state_pca = Dataset(states_pca)
+        ds_qvalues = Dataset(q_values)
+        ds_action = Dataset(actions)
+        ds_value = Dataset(values)
 
-    print("Computing Q-value RDM...")
-    rdm_qvalues = calc_rdm(ds_qvalues, method='correlation')
+        # =====================================================
+        # COMPUTE RDMS
+        # =====================================================
 
-    print("Computing action RDM...")
-    rdm_action = calc_rdm(ds_action, method='euclidean')
+        print("Computing state RDM...")
+        rdm_state = calc_rdm(ds_state, method='correlation')
 
-    print("Computing value RDM...")
-    rdm_value = calc_rdm(ds_value, method='euclidean')
+        print("Computing PCA RDM...")
+        rdm_state_pca = calc_rdm(ds_state_pca, method='correlation')
 
-    # =====================================================
-    # SAVE
-    # =====================================================
+        print("Computing Q-value RDM...")
+        rdm_qvalues = calc_rdm(ds_qvalues, method='correlation')
 
-    rdms_folder = os.path.join(input_folder, "rdms")
+        print("Computing action RDM...")
+        rdm_action = calc_rdm(ds_action, method='euclidean')
 
-    os.makedirs(rdms_folder, exist_ok=True)
+        print("Computing value RDM...")
+        rdm_value = calc_rdm(ds_value, method='euclidean')
 
-    save_rdm(
-        rdm_state,
-        os.path.join(rdms_folder, "pixel_rdm")
-    )
+        # =====================================================
+        # SAVE
+        # =====================================================
 
-    save_rdm(
-        rdm_state_pca,
-        os.path.join(rdms_folder, "pixel_pca_rdm")
-    )
+        rdms_folder = os.path.join(input_folder, "rdms")
 
-    save_rdm(
-        rdm_qvalues,
-        os.path.join(rdms_folder, "qvalue_rdm")
-    )
+        os.makedirs(rdms_folder, exist_ok=True)
 
-    save_rdm(
-        rdm_action,
-        os.path.join(rdms_folder, "action_rdm")
-    )
+        save_rdm(
+            rdm_state,
+            os.path.join(rdms_folder, "pixel_rdm")
+        )
 
-    save_rdm(
-        rdm_value,
-        os.path.join(rdms_folder, "state_value_rdm")
-    )
+        save_rdm(
+            rdm_state_pca,
+            os.path.join(rdms_folder, "pixel_pca_rdm")
+        )
 
-    print("Saved all RDMs.")
+        save_rdm(
+            rdm_qvalues,
+            os.path.join(rdms_folder, "qvalue_rdm")
+        )
 
-print("\nDone.")
+        save_rdm(
+            rdm_action,
+            os.path.join(rdms_folder, "action_rdm")
+        )
+
+        save_rdm(
+            rdm_value,
+            os.path.join(rdms_folder, "state_value_rdm")
+        )
+
+        print("Saved all RDMs.")
+
+    print("\nDone.")

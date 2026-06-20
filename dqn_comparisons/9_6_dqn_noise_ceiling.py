@@ -226,7 +226,7 @@ for game in GAMES:
 # =========================================================
 # SAVE
 # =========================================================
-summary_df = pd.DataFrame(summary_rows)
+summary_df = pd.DataFrame(summary_rows).round(4)
 out_csv    = os.path.join(OUTPUT_DIR, "dqn_noise_ceiling.csv")
 summary_df.to_csv(out_csv, index=False)
 print(f"\nSaved summary → {out_csv}")

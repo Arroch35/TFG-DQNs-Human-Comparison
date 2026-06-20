@@ -12,9 +12,9 @@ from rsatoolbox.rdm import RDMs, compare
 
 GAMES = ["pong", "pacman", "spaceinvaders"]
 
-seeds = ["seed_0", "seed_1", "seed_2", "seed_3", "seed_42"] #["seed_0", "seed_42"]
+seeds = ["seed_42"] #["seed_0", "seed_42"]
 
-specific_directory = "big_rdm_equal_size" #"big_rdm_equal_size" #"selected_subset_15"
+specific_directory = "selected_subset_15" #"big_rdm_equal_size" #"selected_subset_15"
 
 HCF_FILE=f"../data/test_16_rdms/{specific_directory}/pong/hcf/pong_hcf_rdm.npy"
 
@@ -47,6 +47,28 @@ def rsa_spearman(rdm_a, rdm_b):
     if np.std(v_a) == 0 or np.std(v_b) == 0:
         return np.nan
     return float(compare(to_rdm_object(rdm_a), to_rdm_object(rdm_b), method="spearman")[0, 0])
+
+
+def clean_paper_name(name):
+    # 1. Exact manual mapping for precise control
+    mapping = {
+        "conv1_correlation": "Conv 1",
+        "conv2_correlation": "Conv 2",
+        "conv3_correlation": "Conv 3",
+        "fc_correlation": "FC",
+        "pixel_rdm": "Pixel",
+        "pixel_pca_rdm": "Pixel PCA",
+        "HCF": "HCF",   # Keeping your existing keys safe
+        "Human": "Human"
+    }
+    
+    # Return the mapped name if it exists; otherwise, fallback to a clean default
+    if name in mapping:
+        return mapping[name]
+    
+    # Fallback cleanup just in case a new layer name appears
+    return name.replace('_correlation', '').replace('_rdm', '').replace('_', ' ').title()
+
  
 # ==============================
 # MAIN
@@ -73,7 +95,6 @@ for seed in seeds:
         print("=" * 70)
     
         # ------------------------------
-
         # LOAD INTERNAL RDMs
         # ------------------------------
         internal_path = os.path.join(INTERNAL_RDM_FOLDER, game, "rdms")
@@ -82,8 +103,6 @@ for seed in seeds:
         expected_keys = [
             "pixel_rdm",
             "pixel_pca_rdm",
-            "qvalue_rdm",
-            "state_value_rdm"
         ]
         for key in expected_keys:
             file_path = os.path.join(internal_path, f"{key}.npy")
@@ -128,6 +147,7 @@ for seed in seeds:
         names = names + ["Human"]
         all_rdms["Human"] = human_rdm
     
+        cleaned_names = [clean_paper_name(name) for name in names]
         print("Total RDMs:", len(names))
     
         # -----------------------------------------------------
@@ -184,8 +204,8 @@ for seed in seeds:
 
         ax.set_xticks(range(len(names)))
         ax.set_yticks(range(len(names)))
-        ax.set_xticklabels(names, rotation=45, ha="right")
-        ax.set_yticklabels(names)
+        ax.set_xticklabels(cleaned_names, rotation=45, ha="right")
+        ax.set_yticklabels(cleaned_names)
 
         for i in range(len(names)):
             for j in range(i):
@@ -193,10 +213,10 @@ for seed in seeds:
                 if not np.isnan(val):
                     ax.text(
                         j, i,
-                        f"{val:.2f}",
+                        f"{val:.3f}",
                         ha="center",
                         va="center",
-                        fontsize=10,
+                        fontsize=12,
                         color="white" if val > 0.5 else "black"
                     )
     

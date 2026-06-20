@@ -25,7 +25,7 @@ GAME =  "MsPacmanNoFrameskip-v4" # "PongNoFrameskip-v4"
 TOTAL_TIMESTEPS = 25_000_000
 CHECKPOINT_FREQ = 500_000
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-N_ENVS = 1  # Number of parallel environments
+N_ENVS = 4  # Number of parallel environments
 
 # =========================================================
 # ENVIRONMENT FUNCTION
@@ -54,11 +54,6 @@ def train():
     env = SubprocVecEnv([make_env(i) for i in range(N_ENVS)])
     env = VecFrameStack(env, n_stack=4)
 
-    obs = env.reset()
-    print("obs shape after wrappers:", obs.shape)
-    print("obs dtype:", obs.dtype)
-    print("obs min/max:", obs.min(), obs.max())
-
     # ------------------------------
     # Evaluation Environment
     # ------------------------------
@@ -85,10 +80,6 @@ def train():
     
     end = time.time()
     print("Steps/sec:", 100 * env.num_envs / (end - start))
-
-    print("obs shape after wrappers:", obs.shape)
-    print("obs dtype:", obs.dtype)
-    print("obs min/max:", obs.min(), obs.max())
 
     # ------------------------------
     # Callbacks & WandB
@@ -117,7 +108,7 @@ def train():
         eval_env,
         best_model_save_path=base_path + "best_model/",
         log_path=base_path + "eval_logs/",
-        eval_freq=200_000,
+        eval_freq=100_000,
         n_eval_episodes=10,
         deterministic=True,
         render=False,
@@ -149,7 +140,7 @@ def train():
         train_freq=4,
         gradient_steps=1,        # increased gradient steps
         target_update_interval=10_000,
-        exploration_fraction=0.4,
+        exploration_fraction=0.25, #0.4
         exploration_final_eps=0.1,
         tensorboard_log="./tensorboard/",
         policy_kwargs=policy_kwargs,

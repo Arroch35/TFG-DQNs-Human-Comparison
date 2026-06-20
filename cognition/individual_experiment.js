@@ -11,7 +11,7 @@ var timeline = [];
 /* ---------------------------------
    1) CONFIGURATION
 --------------------------------- */
-var n_trials_per_game = 10;   // X triplets per game
+var n_trials_per_game = 6;   // X triplets per game
 var n_clips_per_trial = 3;
 
 /* ---------------------------------
@@ -20,64 +20,36 @@ var n_clips_per_trial = 3;
 var games_data = {
   "PongNoFrameskip-v4": {
     clips: [
-      'sub_pruebas_PongNoFrameskip-v4_block1_end006100_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end007011_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end012000_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end014511_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end015011_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end015800_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end019300_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end028511_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end045700_frames12.mp4', 
-      'sub_pruebas_PongNoFrameskip-v4_block1_end054700_frames12.mp4'
+      'sub_pruebas_PongNoFrameskip-v4_block1_end006100.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end007011.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end012000.mp4',
+      'sub_pruebas_PongNoFrameskip-v4_block1_end015800.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end019300.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end020600.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end022100.mp4',
+      'sub_pruebas_PongNoFrameskip-v4_block1_end028800.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end029511.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end041511.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end044700.mp4', 
+      'sub_pruebas_PongNoFrameskip-v4_block1_end045600.mp4',
+      'sub_pruebas_PongNoFrameskip-v4_block1_end045700.mp4',
+      'sub_pruebas_PongNoFrameskip-v4_block1_end049600.mp4',
+      'sub_pruebas_PongNoFrameskip-v4_block1_end054700.mp4' 
+      
     ],
 
     /* PASTE HERE the gameplay demo clip for Pong */
-    demo: 'sub_clipsEjemplo_PongNoFrameskip-v4_block1_start000005_end001004_frames1000_dur10s.mp4'
+    demo: 'sub_clipsEjemplo_PongNoFrameskip-v4_block1_start000005_end001004_frames1000_dur10s.mp4',
+    
+    easy_triplets: [[0, 9, 13], [0, 9, 8], [7, 12, 8], [7, 12, 9], [9, 11, 6], [6, 11, 3], [6, 11, 2], [9, 11, 0], [12, 14, 4], [9, 11, 2], [7, 14, 4], [6, 11, 12], [7, 12, 3], [7, 12, 6], [7, 14, 3], [0, 9, 4], [12, 14, 13], [9, 11, 3], [7, 14, 13], [7, 12, 1]],
+
+    medium_triplets: [[0, 5, 12], [4, 10, 6], [1, 3, 9], [7, 10, 1], [5, 8, 0], [0, 12, 3], [6, 14, 5], [0, 11, 10], [10, 14, 1], [6, 7, 5], [8, 13, 3], [2, 3, 0], [4, 10, 9], [4, 13, 12], [5, 13, 7], [10, 12, 11], [0, 5, 13], [0, 11, 7], [0, 10, 3], [0, 5, 1]],
+
+    hard_triplets: [[2, 5, 6], [7, 11, 13], [2, 4, 12], [4, 11, 3], [11, 12, 3], [10, 13, 1], [0, 12, 8], [9, 10, 3], [2, 12, 6], [1, 8, 12], [0, 4, 1], [10, 12, 0], [3, 14, 9], [4, 9, 12], [0, 8, 2], [0, 10, 2], [1, 13, 5], [1, 3, 5], [0, 14, 1], [11, 13, 14]]
   },
-
-  "SpaceInvadersNoFrameskip-v4": {
-    clips: [
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end000511_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end002400_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end005011_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end008300_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end011700_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end013700_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end018500_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end019500_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end037100_frames12.mp4', 
-      'sub_pruebas_SpaceInvadersNoFrameskip-v4_block1_end068400_frames12.mp4'
-    ],
-
-    /* PASTE HERE the gameplay demo clip for Space Invaders */
-    demo: 'sub_clipsEjemplo_SpaceInvadersNoFrameskip-v4_block1_start000010_end001009_frames1000_dur10s.mp4'
-  },
-  
-  "MsPacmanNoFrameskip-v4": {
-    clips: [
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end001900_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end006700_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end007150_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end008900_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end011350_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end015850_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end020850_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end025000_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end028700_frames12.mp4',
-      'sub_pruebas_MsPacmanNoFrameskip-v4_block1_end032400_frames12.mp4'
-    ],
-
-    /* PASTE HERE the gameplay demo clip for Ms. Pac-Man */
-    demo: 'sub_clipsEjemplo_MsPacmanNoFrameskip-v4_block1_start000200_end001365_frames1166_dur10s.mp4'
-  }
 };
 
-var game_order = shuffleArray([
-  "MsPacmanNoFrameskip-v4",
-  "PongNoFrameskip-v4",
-  "SpaceInvadersNoFrameskip-v4"
-]);
+var game_order = ["PongNoFrameskip-v4"];
 
 /* flatten all videos for preload */
 var all_videos = [];
@@ -86,19 +58,37 @@ game_order.forEach(function(game) {
   all_videos.push(games_data[game].demo); // also preload gameplay demo clips
 });
 
-console.log("All video paths:", all_videos);
+// ---------------------------------
+// SEEDED RANDOM GENERATOR
+// ---------------------------------
+function mulberry32(seed) {
+  return function() {
+    var t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+// Fixed seed for ALL participants
+var rng = mulberry32(42);
 
 /* ---------------------------------
    3) HELPERS
 --------------------------------- */
 function shuffleArray(array) {
+
   var arr = array.slice();
+
   for (var i = arr.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
+
+    var j = Math.floor(rng() * (i + 1));
+
     var temp = arr[i];
     arr[i] = arr[j];
     arr[j] = temp;
   }
+
   return arr;
 }
 
@@ -109,26 +99,38 @@ function gameLabel(gameName) {
   return gameName;
 }
 
-function generateUniqueTriplets(video_list, n_trials, n_clips_per_trial) {
-  var trials = [];
-  var used_triplets = new Set();
+function buildFixedTripletOrder(game_name) {
 
-  var max_possible = combinationCount(video_list.length, n_clips_per_trial);
-  if (n_trials > max_possible) {
-    console.warn("Requested", n_trials, "triplets but only", max_possible, "unique triplets possible.");
-    n_trials = max_possible;
-  }
+  var results = [];
 
-  while (trials.length < n_trials) {
-    var triplet = shuffleArray(video_list).slice(0, n_clips_per_trial);
-    var key = triplet.slice().sort().join("|");
-    if (!used_triplets.has(key)) {
-      trials.push(triplet);
-      used_triplets.add(key);
-    }
-  }
+  // ---------------------------------
+  // ADD ALL TRIPLETS
+  // ---------------------------------
 
-  return trials;
+  ["easy_triplets", "medium_triplets", "hard_triplets"]
+    .forEach(function(difficulty) {
+
+      games_data[game_name][difficulty]
+        .forEach(function(triplet_indices) {
+
+          var real_triplet = triplet_indices.map(function(idx) {
+            return games_data[game_name].clips[idx];
+          });
+
+          results.push({
+            difficulty: difficulty,
+            triplet: shuffleArray(real_triplet) // randomize clip positions INSIDE trial
+          });
+        });
+    });
+
+  // ---------------------------------
+  // SHUFFLE TRIAL ORDER ONCE
+  // ---------------------------------
+
+  results = shuffleArray(results);
+
+  return results;
 }
 
 function combinationCount(n, k) {
@@ -202,7 +204,6 @@ var intro = {
       <p style=" margin-left:10px;">
         • marcador, puntos o vidas<br>
         • números o texto en pantalla<br>
-        • colores o brillo<br>
         • pequeños cambios visuales
       </p>
     
@@ -225,7 +226,7 @@ var blank_screen = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: '',
   choices: "NO_KEYS",
-  trial_duration: 100
+  trial_duration: 0
 };
 
 /* ---------------------------------
@@ -345,8 +346,10 @@ function createGameStartScreen(gameName, blockIndex, totalBlocks, demoClip) {
 /* ---------------------------------
    8) TRIAL TEMPLATE
 --------------------------------- */
-function createTripletTrial(triplet, game_name, trial_in_game, total_trials_in_game) {
+function createTripletTrial(triplet, game_name, trial_in_game, total_trials_in_game, difficulty) {
+  console.log(difficulty);
   return {
+    
     type: jsPsychHtmlButtonResponse,
     stimulus: function() {
       var video1 = triplet[0], video2 = triplet[1], video3 = triplet[2];
@@ -625,6 +628,7 @@ function createTripletTrial(triplet, game_name, trial_in_game, total_trials_in_g
     data: {
       task: "odd_one_out",
       game_name: game_name,
+      difficulty: difficulty,
       clip_1: triplet[0],
       clip_2: triplet[1],
       clip_3: triplet[2],
@@ -671,14 +675,31 @@ function createTripletTrial(triplet, game_name, trial_in_game, total_trials_in_g
       window.addEventListener("resize", checkOrientation);
       window.addEventListener("orientationchange", checkOrientation);
 
+      //Esta funcion está hecha así porque con 4 frames el browser lo jodia y ponia solo 3
       document.querySelectorAll(".play-btn").forEach(function(btn) {
         btn.addEventListener("click", function() {
           var idx = parseInt(this.dataset.vid);
-          vids[idx].pause();
-          vids[idx].currentTime = 0;
-          vids[idx].play().catch(function(e) {
-            console.log(e);
-          });
+          var v = vids[idx];
+          
+          // 1. Reset
+          v.pause();
+          v.currentTime = 0;
+      
+          // 2. Define the exact timestamps for 2fps (4 frames)
+          // Frame 1: 0.0s, Frame 2: 0.5s, Frame 3: 1.0s, Frame 4: 1.5s
+          var frameTimes = [0.0, 0.5, 1.0, 1.5];
+          var currentF = 0;
+      
+          // 3. Manually step through the frames every 500ms
+          var timer = setInterval(function() {
+            currentF++;
+            if (currentF < frameTimes.length) {
+              v.currentTime = frameTimes[currentF];
+            } else {
+              clearInterval(timer);
+              v.pause();
+            }
+          }, 500); // 500ms = 2fps
         });
       });
 
@@ -721,6 +742,7 @@ function createTripletTrial(triplet, game_name, trial_in_game, total_trials_in_g
         jsPsych.finishTrial({
           task: "odd_one_out",
           game_name: game_name,
+          difficulty: difficulty,
           clip_1: triplet[0],
           clip_2: triplet[1],
           clip_3: triplet[2],
@@ -751,11 +773,7 @@ game_order.forEach(function(game_name, game_index) {
   var game_videos = games_data[game_name].clips;
   var game_demo = games_data[game_name].demo;
 
-  var game_triplets = generateUniqueTriplets(
-    game_videos,
-    n_trials_per_game,
-    n_clips_per_trial
-  );
+  var game_triplets = buildFixedTripletOrder(game_name);
 
   timeline.push(
     createGameStartScreen(
@@ -766,89 +784,25 @@ game_order.forEach(function(game_name, game_index) {
     )
   );
 
-  game_triplets.forEach(function(triplet, idx) {
+  game_triplets.forEach(function(item, idx) {
+  
+  
+    var triplet = item.triplet;
+    var difficulty = item.difficulty;
+    
+  
     timeline.push(blank_screen);
+  
     timeline.push(createTripletTrial(
       triplet,
       game_name,
       idx + 1,
-      game_triplets.length
+      game_triplets.length,
+      difficulty
     ));
   });
 });
 
-/* ---------------------------------
-   10) POST-EXPERIMENT SURVEY
---------------------------------- */
-var feedback_survey_1 = {
-  type: jsPsychSurveyLikert,
-  preamble: `
-    <div style="max-width:900px; margin:auto; font-size:24px; line-height:1.6;">
-      <h2>Cuestionario breve</h2>
-      <p>Antes de terminar, responde unas preguntas sobre tu experiencia.</p>
-    </div>
-  `,
-  questions: [
-    {
-      prompt: "¿Juegas habitualmente a videojuegos?",
-      labels: ["Nunca", "Rara vez", "A veces", "Frecuentemente", "Muy frecuentemente"],
-      required: true
-    },
-    {
-      prompt: "¿Conocías alguno de estos juegos antes del experimento?",
-      labels: ["No, ninguno", "Me sonaba alguno", "Conocía alguno", "Conocía varios", "Conocía todos"],
-      required: true
-    },
-    {
-      prompt: "¿La tarea te ha parecido clara?",
-      labels: ["Nada clara", "Poco clara", "Neutral", "Bastante clara", "Muy clara"],
-      required: true
-    },
-    {
-      prompt: "¿Te resultó difícil decidir cuál era el clip más diferente?",
-      labels: ["Nada difícil", "Poco difícil", "Neutral", "Bastante difícil", "Muy difícil"],
-      required: true
-    },
-    {
-      prompt: "¿Te han parecido difíciles de interpretar los clips?",
-      labels: ["Nada", "Poco", "Neutral", "Bastante", "Mucho"],
-      required: true
-    },
-    {
-      prompt: "¿Qué tan largo te ha parecido el experimento?",
-      labels: [
-        "Muy largo",
-        "Un poco largo",
-        "Adecuado",
-        "Podría haber sido un poco más largo",
-        "Podría hacer más intentos"
-      ],
-      required: true
-    },
-    {
-      prompt: "¿Qué tan seguro/a te sentías al elegir el clip más diferente?",
-      labels: ["Nada seguro/a", "Poco seguro/a", "Neutral", "Bastante seguro/a", "Muy seguro/a"],
-      required: true
-    }
-  ],
-  button_label: "Acabar",
-  data: {
-    task: "post_survey_likert"
-  },
-  on_finish: function(data) {
-    var responses = data.response || {};
-    data.video_game_frequency = responses.Q0;
-    data.prior_game_familiarity = responses.Q1;
-    data.task_clarity = responses.Q2;
-    data.odd_selection_difficulty = responses.Q3;
-    data.clip_interpretation_difficulty = responses.Q4;
-    data.perceived_experiment_length = responses.Q5;
-    data.decision_confidence = responses.Q6;
-  }
-};
-
-
-timeline.push(feedback_survey_1);
 
 /* ---------------------------------
    11) END SCREEN
@@ -873,19 +827,3 @@ timeline.push(end_screen);
 
 /* start the experiment */
 jsPsych.run(timeline);
-
-// todo: HACER LO ULTIMO QUE ME HA DICHE+O EL CHAT. TENGO QUE HACER ESO + QUE SE HAGA POR TODOS LOS JUEGOS, MAS QUE SE RECOGAN LOS DATOS COMO YO QUIERO
-// LUEGO FALTARÁ ENQUESTA PARA MEJORAR EL JUEGO Y PROBAR EL TIEMPO QUE SE PUEDE TARDAR SIENDO REALISTAS. pROBAR TAMBIEN ESTO EN EL MOVIL
-
-//TODO: Falta: -QUE En las pantallas de trasnicion entre juego y juego se puedan ver los clips de gameplay
-//             - Que se haga la enquesta de satisfacción
-//             - Que se guarden los datos correctamente
-//             - Probar que funcione TODO!!!
-
-// Se me guarrdan raro las cosas, y al finalizar no se tiene que poner de pulsar a una tecle, sino que sea un click o un tab, o que ni haga falta, porque mucha gente saldrá de ahí sin clicar
-// Hacer mejor la survey, porque ahora son dos y eso no me gusta, y ver si lo de la pantalla en blanco ayuda o no
-
-// En la encuesta preguntar si conocian los juegos y cuales. de ahí preguntar si le ha sido facil entender le juego y tal
-
-//FALTA REVISAR QUE ESTÉ TODO BIEN. MEJORAR LAS INTRUCCIONES Y PROBAR EL EXPERIMENTO POR EL TIEMPO
-// INSTRUCIONES DECIR QUE NO SE FIJE EN LA PUNTUACIÓN Y ESO, PERO PREGUNTAR AL CHAT ANTES SI ES BIEN IDEA

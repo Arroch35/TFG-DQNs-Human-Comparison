@@ -126,7 +126,7 @@ def train():
         "CnnPolicy",
         env,
         seed=seed,
-        batch_size=32,          # increased batch size
+        batch_size=32, #128         # increased batch size
         buffer_size=100_000,
         learning_starts=50_000,
         learning_rate=1e-4,
@@ -134,7 +134,7 @@ def train():
         train_freq=4,
         gradient_steps=4,        # increased gradient steps
         target_update_interval=10_000,
-        exploration_fraction=0.1,
+        exploration_fraction=0.25, #0.25
         exploration_final_eps=0.1,
         tensorboard_log="./tensorboard/",
         policy_kwargs=policy_kwargs,

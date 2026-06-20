@@ -158,7 +158,7 @@ for game in GAMES:
 # =========================================================
 # SUMMARY TABLE
 # =========================================================
-df = pd.DataFrame(summary_rows)
+df = pd.DataFrame(summary_rows).round(4)
 
 # Pivot for a clean layer × game view
 pivot_mean = df.pivot(index="layer", columns="game", values="mean_rsa")

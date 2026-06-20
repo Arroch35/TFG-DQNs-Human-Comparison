@@ -19,9 +19,6 @@ SEED = "seed_42"
 # Full RDMs computed from buenos_25 activations
 BASE_RDM_FOLDER = f"../data/test_16_rdms/selected_subset_15/{SEED}"
 
-# Original clip maps
-MAP_FOLDER = "../data/maps/buenos_25"
-
 # Real video clips
 CLIP_BASE_FOLDER = "../data/test_16_clips"
 
@@ -29,19 +26,35 @@ CLIP_BASE_FOLDER = "../data/test_16_clips"
 SA_FOLDER = f"../data/subset_selection/{SEED}"
 
 # Output
-SAVE_FOLDER = f"../data/triplet_visualization_subset/selected_15/{SEED}/all_dificulties"
+SAVE_FOLDER = (
+    f"../data/triplet_visualization_subset/"
+    f"selected_15/{SEED}/filtered_all_difficulties"
+)
 
 DIM = 2
 N_REPEATS = 100
 MAX_ITER = 1000
 
-# Difficulty ranges
+# =========================================================
+# DIFFICULTY CONFIG
+# =========================================================
+
+# easy = top 20%
 EASY_PERCENT = 0.2
+
+# hard = bottom 20%
 HARD_PERCENT = 0.2
 
-# Middle region
+# medium = middle 40-60%
 MEDIUM_LOW = 0.4
 MEDIUM_HIGH = 0.6
+
+# =========================================================
+# STRUCTURE FILTER
+# =========================================================
+
+# discard bottom X% least-structured triplets
+STRUCTURE_PERCENTILE = 20
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
@@ -58,6 +71,7 @@ def build_triplets_from_rdm(rdm):
         dik = rdm[i, k]
         djk = rdm[j, k]
 
+        # smallest distance defines similar pair
         if dij <= dik and dij <= djk:
 
             triplets.append((i, j, k))
@@ -94,17 +108,23 @@ def remove_symmetric_triplets(triplets):
 
     return np.array(unique, dtype=np.int32)
 
+# =========================================================
+# ADD SYMMETRIC TRIPLETS BACK
+# =========================================================
 def add_symmetric_triplets(triplets):
-    # Convert to a set of tuples for O(1) lookups
+
     existing = set(tuple(t) for t in triplets)
+
     result = list(triplets)
 
     for i, j, k in triplets:
-        # The symmetric counterpart swaps i and j, but keeps k
+
         symmetric_counterpart = (j, i, k)
-        
+
         if symmetric_counterpart not in existing:
+
             existing.add(symmetric_counterpart)
+
             result.append(symmetric_counterpart)
 
     return np.array(result, dtype=np.int32)
@@ -166,8 +186,7 @@ def save_triplets(
             exist_ok=True
         )
 
-        # convert subset-local idx
-        # back to original buenos_25 idx
+        # local subset idx -> original idx
         orig_i = new_to_orig[i]
         orig_j = new_to_orig[j]
         orig_k = new_to_orig[k]
@@ -229,6 +248,58 @@ def save_triplets(
                 f"{difficulty_name} triplet {idx}: {e}"
             )
 
+
+# =========================================================
+# SAVE TRIPLET CSV
+# =========================================================
+def save_triplet_csv(
+    triplets_array,
+    csv_path
+):
+
+    rows = []
+
+    for i, j, k in triplets_array:
+
+        rows.append({
+            "similar1": int(i),
+            "similar2": int(j),
+            "odd": int(k)
+        })
+
+    df = pd.DataFrame(rows)
+
+    df.to_csv(
+        csv_path,
+        index=False
+    )
+
+# =========================================================
+# SAVE CLIP INDEX MAP
+# =========================================================
+def save_clip_index_map(
+    subset_df,
+    csv_path
+):
+
+    mapping_df = (
+        subset_df[
+            ["clip_index", "clip_name"]
+        ]
+        .sort_values("clip_index")
+        .reset_index(drop=True)
+    )
+
+    mapping_df.columns = [
+        "index",
+        "clip_name"
+    ]
+
+    mapping_df.to_csv(
+        csv_path,
+        index=False
+    )
+
 # =========================================================
 # MAIN
 # =========================================================
@@ -239,7 +310,7 @@ for game in GAMES:
     print("=" * 60)
 
     # =====================================================
-    # LOAD SELECTED SUBSET CSV
+    # LOAD SUBSET CSV
     # =====================================================
     subset_csv = os.path.join(
         SA_FOLDER,
@@ -253,13 +324,17 @@ for game in GAMES:
 
     subset_df = pd.read_csv(subset_csv)
 
-    # Original indices inside buenos_25 RDM
-    SELECTED_INDICES = subset_df["clip_index"].tolist()
+    SELECTED_INDICES = subset_df[
+        "clip_index"
+    ].tolist()
 
-    print(f"Loaded subset with {len(SELECTED_INDICES)} clips")
+    print(
+        f"Loaded subset with "
+        f"{len(SELECTED_INDICES)} clips"
+    )
 
     # =====================================================
-    # LOAD FULL RDM
+    # LOAD RDM
     # =====================================================
     rdm_path = os.path.join(
         BASE_RDM_FOLDER,
@@ -277,7 +352,7 @@ for game in GAMES:
     print(f"RDM shape: {rdm.shape}")
 
     # =====================================================
-    # LOCAL INDEX → ORIGINAL INDEX
+    # LOCAL -> ORIGINAL INDEX
     # =====================================================
     new_to_orig = {
         i: orig
@@ -292,20 +367,25 @@ for game in GAMES:
     print(f"Total triplets: {len(all_triplets)}")
 
     # =====================================================
-    # REMOVE SYMMETRIC DUPLICATES FIRST
+    # REMOVE SYMMETRIC DUPLICATES
     # =====================================================
     all_triplets = remove_symmetric_triplets(
         all_triplets
     )
 
     print(
-        f"Unique triplets: {len(all_triplets)}"
+        f"Unique triplets: "
+        f"{len(all_triplets)}"
     )
 
     # =====================================================
-    # SCORE TRIPLETS
+    # STRUCTURE + DIFFICULTY SCORES
     # =====================================================
     scores = np.zeros(len(all_triplets))
+
+    structure_scores = np.zeros(
+        len(all_triplets)
+    )
 
     for idx, (i, j, k) in enumerate(all_triplets):
 
@@ -316,18 +396,63 @@ for game in GAMES:
         dik = rdm[i, k]
         djk = rdm[j, k]
 
-        # mean odd distance
+        # -------------------------------------------------
+        # STRUCTURE SCORE
+        # -------------------------------------------------
+        d1, d2, d3 = sorted([
+            dij,
+            dik,
+            djk
+        ])
+
+        structure_scores[idx] = (
+            (d3 - d1)
+            / (d3 + 1e-8)
+        )
+
+        # -------------------------------------------------
+        # DIFFICULTY SCORE
+        # -------------------------------------------------
         d_odd = (dik + djk) / 2.0
 
-        # larger = easier
         scores[idx] = (
             (d_odd - dij)
             / (d_odd + dij + 1e-8)
         )
 
-        # print(
-        #     f"Triplet {idx}: (similar: {dij:.4f}) (odd: {d_odd:.4f}) → score: {scores[idx]:.4f}"
-        # )
+    # =====================================================
+    # REMOVE LOW-STRUCTURE TRIPLETS
+    # =====================================================
+    structure_threshold = np.percentile(
+        structure_scores,
+        STRUCTURE_PERCENTILE
+    )
+
+    keep_mask = (
+        structure_scores > structure_threshold
+    )
+
+    all_triplets = all_triplets[keep_mask]
+    scores = scores[keep_mask]
+    structure_scores = structure_scores[keep_mask]
+
+    print(
+        f"\nStructure threshold "
+        f"({STRUCTURE_PERCENTILE}%): "
+        f"{structure_threshold:.4f}"
+    )
+
+    print(
+        f"Remaining structured triplets: "
+        f"{len(all_triplets)}"
+    )
+
+    print(
+        f"Structure score range: "
+        f"{structure_scores.min():.4f} "
+        f"to "
+        f"{structure_scores.max():.4f}"
+    )
 
     # =====================================================
     # SORT TRIPLETS BY DIFFICULTY
@@ -337,7 +462,7 @@ for game in GAMES:
     sorted_idxs = np.argsort(scores)
 
     # -----------------------------------------------------
-    # HARD = bottom 20%
+    # HARD
     # -----------------------------------------------------
     hard_end = int(n_total * HARD_PERCENT)
 
@@ -345,55 +470,66 @@ for game in GAMES:
         sorted_idxs[:hard_end]
     ]
 
-    # print(f"Hard triplet scores: {scores[sorted_idxs[:hard_end]]}")
-    print(f"Hard triplets: {min(scores[sorted_idxs[:hard_end]]):.4f} to {max(scores[sorted_idxs[:hard_end]]):.4f}")
+    print(
+        f"\nHard triplets: "
+        f"{min(scores[sorted_idxs[:hard_end]]):.4f} "
+        f"to "
+        f"{max(scores[sorted_idxs[:hard_end]]):.4f}"
+    )
 
     # -----------------------------------------------------
-    # MEDIUM = 40% -> 60%
+    # MEDIUM
     # -----------------------------------------------------
     medium_start = int(n_total * MEDIUM_LOW)
+
     medium_end = int(n_total * MEDIUM_HIGH)
 
     medium_triplets = all_triplets[
         sorted_idxs[medium_start:medium_end]
     ]
 
-    # print(f"Medium triplet scores: {scores[sorted_idxs[medium_start:medium_end]]}")
-    print(f"Medium triplets: {min(scores[sorted_idxs[medium_start:medium_end]]):.4f} to {max(scores[sorted_idxs[medium_start:medium_end]]):.4f}")
+    print(
+        f"Medium triplets: "
+        f"{min(scores[sorted_idxs[medium_start:medium_end]]):.4f} "
+        f"to "
+        f"{max(scores[sorted_idxs[medium_start:medium_end]]):.4f}"
+    )
 
     # -----------------------------------------------------
-    # EASY = top 20%
+    # EASY
     # -----------------------------------------------------
-    easy_start = int(n_total * (1.0 - EASY_PERCENT))
+    easy_start = int(
+        n_total * (1.0 - EASY_PERCENT)
+    )
 
     easy_triplets = all_triplets[
         sorted_idxs[easy_start:]
     ]
 
-    # print(f"Easy triplet scores: {scores[sorted_idxs[easy_start:]]}")
-    print(f"Easy triplets: {min(scores[sorted_idxs[easy_start:]]):.4f} to {max(scores[sorted_idxs[easy_start:]]):.4f}")
+    print(
+        f"Easy triplets: "
+        f"{min(scores[sorted_idxs[easy_start:]]):.4f} "
+        f"to "
+        f"{max(scores[sorted_idxs[easy_start:]]):.4f}"
+    )
+
+    print(
+        f"\nHard triplets:   "
+        f"{len(hard_triplets)}"
+    )
+
+    print(
+        f"Medium triplets: "
+        f"{len(medium_triplets)}"
+    )
+
+    print(
+        f"Easy triplets:   "
+        f"{len(easy_triplets)}"
+    )
 
     # =====================================================
-    # REMOVE SYMMETRIC DUPLICATES
-    # =====================================================
-    # hard_triplets = remove_symmetric_triplets(
-    #     hard_triplets
-    # )
-
-    # medium_triplets = remove_symmetric_triplets(
-    #     medium_triplets
-    # )
-
-    # easy_triplets = remove_symmetric_triplets(
-    #     easy_triplets
-    # )
-
-    print(f"Hard triplets:   {len(hard_triplets)}")
-    print(f"Medium triplets: {len(medium_triplets)}")
-    print(f"Easy triplets:   {len(easy_triplets)}")
-
-    # =====================================================
-    # BUILD INDEX → CLIP MAP
+    # INDEX -> CLIP MAP
     # =====================================================
     index_to_clip = dict(
         zip(
@@ -403,20 +539,23 @@ for game in GAMES:
     )
 
     # =====================================================
-    # RUN t-STE
+    # t-STE RECONSTRUCTION
     # =====================================================
     print("\nRunning t-STE reconstruction...")
 
     best_score = -np.inf
 
-    # using ALL triplets for reconstruction
     reconstruction_triplets = np.concatenate([
         hard_triplets,
         medium_triplets,
         easy_triplets
     ])
 
-    reconstruction_triplets = add_symmetric_triplets(reconstruction_triplets)
+    reconstruction_triplets = (
+        add_symmetric_triplets(
+            reconstruction_triplets
+        )
+    )
 
     for repeat in tqdm(range(N_REPEATS)):
 
@@ -439,86 +578,117 @@ for game in GAMES:
 
             best_score = score
 
-    print(f"Best score: {best_score:.4f}")
+    print(
+        f"Best score: "
+        f"{best_score:.4f}"
+    )
 
-    # # =====================================================
-    # # SAVE RESULTS
-    # # =====================================================
-    # game_out = os.path.join(
-    #     SAVE_FOLDER,
-    #     game
-    # )
+    # =====================================================
+    # SAVE RESULTS
+    # =====================================================
+    game_out = os.path.join(
+        SAVE_FOLDER,
+        game
+    )
 
-    # os.makedirs(game_out, exist_ok=True)
+    os.makedirs(game_out, exist_ok=True)
 
-    # with open(
-    #     os.path.join(game_out, "best_score.txt"),
-    #     "w"
-    # ) as f:
 
-    #     f.write(f"{best_score:.6f}")
+    # =====================================================
+    # SAVE CLIP INDEX MAP
+    # =====================================================
+    clip_map_csv = os.path.join(
+        game_out,
+        f"{game}_clip_index_map.csv"
+    )
 
-    # # =====================================================
-    # # SAVE TRIPLETS
-    # # =====================================================
-    # used_clips = set()
+    save_clip_index_map(
+        subset_df,
+        clip_map_csv
+    )
 
-    # difficulty_sets = {
-    #     "easy": easy_triplets,
-    #     "medium": medium_triplets,
-    #     "hard": hard_triplets
-    # }
+    with open(
+        os.path.join(game_out, "best_score.txt"),
+        "w"
+    ) as f:
 
-    # for difficulty_name, triplets_array in (
-    #     difficulty_sets.items()
-    # ):
+        f.write(f"{best_score:.6f}")
 
-    #     save_triplets(
-    #         triplets_array=triplets_array,
-    #         difficulty_name=difficulty_name,
-    #         game_out=game_out,
-    #         new_to_orig=new_to_orig,
-    #         index_to_clip=index_to_clip,
-    #         used_clips=used_clips,
-    #         game=game
-    #     )
+    # =====================================================
+    # SAVE TRIPLETS
+    # =====================================================
+    used_clips = set()
 
-    # # =====================================================
-    # # COPY UNIQUE CLIPS
-    # # =====================================================
-    # print("\nCopying unique clips...")
+    difficulty_sets = {
+        "easy": easy_triplets,
+        "medium": medium_triplets,
+        "hard": hard_triplets
+    }
 
-    # clips_out = os.path.join(
-    #     game_out,
-    #     "clips"
-    # )
+    for difficulty_name, triplets_array in (
+        difficulty_sets.items()
+    ):
 
-    # os.makedirs(clips_out, exist_ok=True)
+        # =================================================
+        # SAVE TRIPLET CSV
+        # =================================================
+        triplet_csv_path = os.path.join(
+            game_out,
+            f"{difficulty_name}_triplets.csv"
+        )
 
-    # for clip_name in tqdm(used_clips):
+        save_triplet_csv(
+            triplets_array,
+            triplet_csv_path
+        )
 
-    #     src = os.path.join(
-    #         CLIP_BASE_FOLDER,
-    #         game,
-    #         "buenos_25/human_dqn_visualitzation",
-    #         clip_name
-    #     )
+        save_triplets(
+            triplets_array=triplets_array,
+            difficulty_name=difficulty_name,
+            game_out=game_out,
+            new_to_orig=new_to_orig,
+            index_to_clip=index_to_clip,
+            used_clips=used_clips,
+            game=game
+        )
 
-    #     dst = os.path.join(
-    #         clips_out,
-    #         clip_name
-    #     )
+    # =====================================================
+    # COPY UNIQUE CLIPS
+    # =====================================================
+    print("\nCopying unique clips...")
 
-    #     try:
+    clips_out = os.path.join(
+        game_out,
+        "clips"
+    )
 
-    #         if not os.path.exists(dst):
+    os.makedirs(clips_out, exist_ok=True)
 
-    #             shutil.copy(src, dst)
+    for clip_name in tqdm(used_clips):
 
-    #     except Exception as e:
+        src = os.path.join(
+            CLIP_BASE_FOLDER,
+            game,
+            "buenos_25/human_dqn_visualitzation",
+            clip_name
+        )
 
-    #         print(f"Error copying clip {clip_name}: {e}")
+        dst = os.path.join(
+            clips_out,
+            clip_name
+        )
 
-    
+        try:
+
+            if not os.path.exists(dst):
+
+                shutil.copy(src, dst)
+
+        except Exception as e:
+
+            print(
+                f"Error copying clip "
+                f"{clip_name}: {e}"
+            )
 
 print("\nDONE.")

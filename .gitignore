@@ -224,3 +224,5 @@ tensorboard/
 run.sh
 
 debug*/
+
+!cy_tste.cp311-win_amd64.pyd

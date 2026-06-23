@@ -9,6 +9,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 from rsatoolbox.data import Dataset
 from rsatoolbox.rdm import calc_rdm, compare, concat
+from src.utils import extract_layer_name
 
 # =========================================================
 # CONFIG
@@ -26,17 +27,6 @@ SUBSET_SIZES = [10, 12, 15, 20, 25, 30, 50]
 N_SUBSETS = 1000
 
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
-# =========================================================
-# HELPER
-# =========================================================
-def extract_layer_name(key):
-    match = re.search(r"(conv\d+|fc)$", key) #\d+
-    if match:
-        return match.group(1)
-    else:
-        raise ValueError(f"Could not extract layer name from key: {key}")
-
 
 # =========================================================
 # COMPUTE RSA

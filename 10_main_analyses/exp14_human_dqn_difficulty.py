@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import binomtest
 
+from src.utils import majority_vote_with_ties
+
 # =========================================================
 # CONFIG
 # =========================================================
@@ -19,16 +21,6 @@ CHANCE = 1 / 3
 # =========================================================
 # HELPERS
 # =========================================================
-
-def majority_vote_with_ties(group):
-    """
-    Returns list of all candidates tied for majority.
-    Length 1  → clean majority.
-    Length >1 → tie: any of the candidates could be the majority vote.
-    """
-    counts    = group["odd_clip_idx"].value_counts()
-    max_count = counts.iloc[0]
-    return counts[counts == max_count].index.tolist()
 
 
 def agreement_with_bounds(sparse_candidates_series, ground_truth_series):

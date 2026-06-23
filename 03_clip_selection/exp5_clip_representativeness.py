@@ -2,10 +2,7 @@ import numpy as np
 import os
 import rsatoolbox
 from scipy.stats import spearmanr
-
-def extract_upper_triangle(mat):
-    return mat[np.triu_indices_from(mat, k=1)]
-
+from src.utils import upper_tri
 
 def compare_second_order_rsa(folder1, folder2, filename):
     # 1. Load the RSA matrices
@@ -24,8 +21,8 @@ def compare_second_order_rsa(folder1, folder2, filename):
     # Note: rsatoolbox RDMs expects dissimilarities. 
     # If your saved matrices are similarities (Spearman rho), 
     # we convert them to dissimilarity (1 - rho) for the toolbox.
-    vec1 = extract_upper_triangle(1 - rsa_mat1)
-    vec2 = extract_upper_triangle(1 - rsa_mat2)
+    vec1 = upper_tri(1 - rsa_mat1)
+    vec2 = upper_tri(1 - rsa_mat2)
 
     corr, _ = spearmanr(vec1, vec2)
     

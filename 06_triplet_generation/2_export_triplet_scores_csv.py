@@ -3,6 +3,8 @@ import os
 import pandas as pd
 from itertools import combinations
 
+from src.utils import build_triplets_from_rdm, remove_symmetric_triplets
+
 # =========================================================
 # CONFIG  — keep identical to 9_4_v3
 # =========================================================
@@ -22,31 +24,6 @@ HARD_PERCENT         = 0.2
 MEDIUM_LOW           = 0.4
 MEDIUM_HIGH          = 0.6
 STRUCTURE_PERCENTILE = 20
-
-# =========================================================
-# HELPERS  — identical logic to 9_4
-# =========================================================
-def build_triplets_from_rdm(rdm):
-    triplets = []
-    for i, j, k in combinations(range(len(rdm)), 3):
-        dij, dik, djk = rdm[i,j], rdm[i,k], rdm[j,k]
-        if dij <= dik and dij <= djk:
-            triplets.append((i, j, k)); triplets.append((j, i, k))
-        elif dik <= dij and dik <= djk:
-            triplets.append((i, k, j)); triplets.append((k, i, j))
-        else:
-            triplets.append((j, k, i)); triplets.append((k, j, i))
-    return np.array(triplets, dtype=np.int32)
-
-
-def remove_symmetric_triplets(triplets):
-    seen, unique = set(), []
-    for i, j, k in triplets:
-        key = (min(i,j), max(i,j), k)
-        if key not in seen:
-            seen.add(key)
-            unique.append((i, j, k))
-    return np.array(unique, dtype=np.int32)
 
 
 def compute_scores(triplets, rdm):

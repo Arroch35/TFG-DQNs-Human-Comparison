@@ -10,6 +10,7 @@ from scipy.stats import spearmanr
 
 from rsatoolbox.data import Dataset
 from rsatoolbox.rdm import calc_rdm, compare, concat
+from src.utils import extract_layer_name, upper_tri
 
 #? ENSEGUIDA CONSIGE UN BUEN SUBSET, PUEDE QUE LO TENGA QUE ADAPTAR PARA QUE, A PARTE DE ESTO, COMPUTE LO UQE TENIA ANTES, LO DE LA MEJOR SEPARACIÓN ENTE LOS CLIPS
 
@@ -40,20 +41,6 @@ os.makedirs(SAVE_FOLDER, exist_ok=True)
 # SA parameters
 N_SELECT = 15
 N_ITER = 300
-
-# =========================================================
-# HELPERS
-# =========================================================
-def extract_layer_name(key):
-    match = re.search(r"(conv\d+|fc)$", key)
-    if match:
-        return match.group(1)
-    else:
-        raise ValueError(f"Could not extract layer name from key: {key}")
-
-
-def upper_triangle(mat):
-    return mat[np.triu_indices_from(mat, k=1)]
 
 # =========================================================
 # SAVE RSA HEATMAP
@@ -241,8 +228,8 @@ def subset_score(game, subset_files, target_rsa):
         subset_files
     )
 
-    v1 = upper_triangle(target_rsa)
-    v2 = upper_triangle(subset_rsa)
+    v1 = upper_tri(target_rsa)
+    v2 = upper_tri(subset_rsa)
 
     #pearson = np.corrcoef(v1, v2)[0,1]
     spearman, _ = spearmanr(v1, v2)

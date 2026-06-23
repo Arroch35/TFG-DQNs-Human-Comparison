@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from rsatoolbox.data import Dataset
 from rsatoolbox.rdm import calc_rdm, compare, concat
 
+from src.utils import extract_layer_name
+
 # =========================================================
 # CONFIGURATION
 # =========================================================
@@ -17,17 +19,7 @@ PCA_FOLDER = "../models/pca_models"
  # "../data/subset_selection/seed_42\pong_best_subset.csv" #"../data/subset_selection/buenos_25/pong_best_subset.csv"
 
 seeds = ["seed_0", "seed_1", "seed_2", "seed_3"] #, "seed_42" ["seed_0", "seed_1", "seed_2", "seed_3", "seed_4"] --- IGNORE ---
-# =========================================================
-# HELPER: extract layer name from key
-# Example key: sub_pruebas_MsPacmanNoFrameskip-v4_block1_end002550_frames12_conv1
-# --> conv1
-# =========================================================
-def extract_layer_name(key):
-    match = re.search(r"(conv\d+|fc)$", key) #\d+
-    if match:
-        return match.group(1)
-    else:
-        raise ValueError(f"Could not extract layer name from key: {key}")
+
 
 # =========================================================
 # PROCESS EACH GAME

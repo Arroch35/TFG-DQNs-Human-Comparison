@@ -6,6 +6,8 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
+from src.utils import extract_layer_name
+
 # =========================================================
 # CONFIG
 # =========================================================
@@ -20,21 +22,6 @@ NORMALIZE = True
 
 os.makedirs(SAVE_FOLDER,  exist_ok=True)
 
-# =========================================================
-# HELPER
-# =========================================================
-def extract_layer_name(key):
-    """
-    Example:
-    clipname_conv1 -> conv1
-    clipname_fc -> fc
-    """
-    match = re.search(r"(conv\d+|fc)$", key)
-
-    if match:
-        return match.group(1)
-
-    raise ValueError(f"Could not extract layer name from key: {key}")
 
 # =========================================================
 # PROCESS EACH GAME

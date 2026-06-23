@@ -5,13 +5,14 @@ import cv2
 from scipy.stats import spearmanr
 
 # ── DQN preprocessing ──────────────────────────────────────
-def dqn_preprocess_from_16_frames(frames_16):
+def dqn_preprocess_from_16_frames(frames_16, human=False):
     assert frames_16.shape[0] == 16
     processed = []
     for t in [3, 7, 11, 15]:
         pooled  = np.maximum(frames_16[t], frames_16[t - 1])
-        gray    = cv2.cvtColor(pooled, cv2.COLOR_RGB2GRAY)
-        resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
+        if not human:
+            gray    = cv2.cvtColor(pooled, cv2.COLOR_RGB2GRAY)
+            resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
         processed.append(resized)
     return np.stack(processed, axis=0).astype(np.float32) / 255.0
 

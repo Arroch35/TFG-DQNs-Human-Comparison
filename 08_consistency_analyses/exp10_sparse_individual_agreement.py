@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from scipy.stats import binomtest
 
+from src.utils import majority_vote_with_ties
+
 # =========================
 # CONFIGURATION
 # =========================
@@ -55,15 +57,7 @@ def majority_vote(group):
 individual_votes = individual_df.groupby("triplet_id").apply(majority_vote).reset_index()
 individual_votes.columns = ["triplet_id", "individual_majority"]
 
-# =========================
-# SPARSE MAJORITY VOTE WITH TIE DETECTION
-# Returns list of all tied candidates (length 1 = no tie, >1 = tie)
-# =========================
-def majority_vote_with_ties(group):
-    counts = group["odd_clip_idx"].value_counts()
-    max_count = counts.iloc[0]
-    tied = counts[counts == max_count].index.tolist()
-    return tied
+
 
 sparse_votes_raw = sparse_df.groupby("triplet_id").apply(majority_vote_with_ties).reset_index()
 sparse_votes_raw.columns = ["triplet_id", "sparse_candidates"]

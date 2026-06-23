@@ -6,6 +6,8 @@ from scipy.stats import spearmanr
 from tqdm import tqdm
 import cy_tste
 
+from src.utils import embedding_to_rdm, build_triplets_from_rdm
+
 # =========================================================
 # CONFIG
 # =========================================================
@@ -22,36 +24,6 @@ N_REPEATS = 100
 MAX_ITER = 1000
 
 SUBSET_PERCENTS = [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
-
-# =========================================================
-# BUILD TRIPLETS
-# =========================================================
-def build_triplets_from_rdm(rdm):
-    triplets = []
-
-    for i, j, k in combinations(range(len(rdm)), 3):
-        dij = rdm[i, j]
-        dik = rdm[i, k]
-        djk = rdm[j, k]
-
-        if dij <= dik and dij <= djk:
-            triplets.append((i, j, k))
-            triplets.append((j, i, k))
-        elif dik <= dij and dik <= djk:
-            triplets.append((i, k, j))
-            triplets.append((k, i, j))
-        else:
-            triplets.append((j, k, i))
-            triplets.append((k, j, i))
-
-    return np.array(triplets, dtype=np.int32)
-
-# =========================================================
-# EMBEDDING → RDM
-# =========================================================
-def embedding_to_rdm(X):
-    diff = X[:, None, :] - X[None, :, :]
-    return np.linalg.norm(diff, axis=-1)
 
 # =========================================================
 # COMPARE RDMS

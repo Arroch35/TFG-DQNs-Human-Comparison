@@ -22,6 +22,7 @@ from src.wrappers.environment_wrappers import (
     RestrictMsPacmanActions,
     RestrictSpaceInvadorsActions
 )
+from src.utils import dqn_preprocess_from_16_frames
 
 # =========================================================
 # CONFIGURATION
@@ -74,42 +75,6 @@ def make_env(game_name):
 # =========================================================
 # PREPROCESSING
 # =========================================================
-
-def dqn_preprocess_from_16_frames(frames_16):
-    """
-    Input:
-        (16,H,W,3)
-
-    Output:
-        (4,84,84)
-    """
-
-    assert frames_16.shape[0] == 16
-
-    selected_indices = [3, 7, 11, 15]
-
-    processed_frames = []
-
-    for t in selected_indices:
-
-        pooled = np.maximum(frames_16[t], frames_16[t - 1])
-
-        gray = cv2.cvtColor(pooled, cv2.COLOR_RGB2GRAY)
-
-        resized = cv2.resize(
-            gray,
-            (84, 84),
-            interpolation=cv2.INTER_AREA
-        )
-
-        processed_frames.append(resized)
-
-    stack = np.stack(processed_frames, axis=0)
-
-    stack = stack.astype(np.float32) / 255.0
-
-    return stack
-
 
 
 def load_pca_model(game, seed):

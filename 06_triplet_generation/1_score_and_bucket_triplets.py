@@ -7,6 +7,8 @@ from scipy.stats import spearmanr
 from tqdm import tqdm
 import cy_tste
 
+from src.utils import embedding_to_rdm, build_triplets_from_rdm, remove_symmetric_triplets, add_symmetric_triplets
+
 # =========================================================
 # CONFIG
 # =========================================================
@@ -58,85 +60,6 @@ STRUCTURE_PERCENTILE = 20
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
-# =========================================================
-# BUILD TRIPLETS
-# =========================================================
-def build_triplets_from_rdm(rdm):
-
-    triplets = []
-
-    for i, j, k in combinations(range(len(rdm)), 3):
-
-        dij = rdm[i, j]
-        dik = rdm[i, k]
-        djk = rdm[j, k]
-
-        # smallest distance defines similar pair
-        if dij <= dik and dij <= djk:
-
-            triplets.append((i, j, k))
-            triplets.append((j, i, k))
-
-        elif dik <= dij and dik <= djk:
-
-            triplets.append((i, k, j))
-            triplets.append((k, i, j))
-
-        else:
-
-            triplets.append((j, k, i))
-            triplets.append((k, j, i))
-
-    return np.array(triplets, dtype=np.int32)
-
-# =========================================================
-# REMOVE SYMMETRIC DUPLICATES
-# =========================================================
-def remove_symmetric_triplets(triplets):
-
-    seen = set()
-    unique = []
-
-    for i, j, k in triplets:
-
-        key = (min(i, j), max(i, j), k)
-
-        if key not in seen:
-
-            seen.add(key)
-            unique.append((i, j, k))
-
-    return np.array(unique, dtype=np.int32)
-
-# =========================================================
-# ADD SYMMETRIC TRIPLETS BACK
-# =========================================================
-def add_symmetric_triplets(triplets):
-
-    existing = set(tuple(t) for t in triplets)
-
-    result = list(triplets)
-
-    for i, j, k in triplets:
-
-        symmetric_counterpart = (j, i, k)
-
-        if symmetric_counterpart not in existing:
-
-            existing.add(symmetric_counterpart)
-
-            result.append(symmetric_counterpart)
-
-    return np.array(result, dtype=np.int32)
-
-# =========================================================
-# EMBEDDING → RDM
-# =========================================================
-def embedding_to_rdm(X):
-
-    diff = X[:, None, :] - X[None, :, :]
-
-    return np.linalg.norm(diff, axis=-1)
 
 # =========================================================
 # COMPARE RDMS

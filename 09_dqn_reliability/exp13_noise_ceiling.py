@@ -4,6 +4,8 @@ import pandas as pd
 from scipy.stats import spearmanr
 import cy_tste
 
+from src.utils import embedding_to_rdm, add_symmetric_triplets
+
 # =========================================================
 # CONFIG
 # =========================================================
@@ -26,22 +28,6 @@ MAX_ITER  = 1000
 # =========================================================
 # HELPERS
 # =========================================================
-def add_symmetric_triplets(triplets):
-    """For each (s1, s2, odd) add (s2, s1, odd) — both directions of the constraint."""
-    existing = set(tuple(t) for t in triplets)
-    result   = list(triplets)
-    for s1, s2, odd in triplets:
-        sym = (s2, s1, odd)
-        if sym not in existing:
-            existing.add(sym)
-            result.append(sym)
-    return np.array(result, dtype=np.int32)
-
-
-def embedding_to_rdm(X):
-    diff = X[:, None, :] - X[None, :, :]
-    return np.linalg.norm(diff, axis=-1)
-
 
 def run_tste(triplets_local, rdm_42_sub):
     """Run t-STE N_REPEATS times, return RDM from the run that best
@@ -69,10 +55,6 @@ def rdm_correlation(rdm1, rdm2):
     idx = np.triu_indices_from(rdm1, k=1)
     return spearmanr(rdm1[idx], rdm2[idx]).correlation
 
-
-def get_upper_tri(rdm):
-    idx = np.triu_indices_from(rdm, k=1)
-    return rdm[idx]
 
 # =========================================================
 # MAIN LOOP

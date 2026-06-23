@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from rsatoolbox.rdm import RDMs, compare
 
+from src.utils import extract_layer_name
+
 # =========================================================
 # CONFIG
 # =========================================================
@@ -27,12 +29,12 @@ pong_rdm = np.load(HCF_FILE)
 # HELPERS
 # =========================================================
 
-def extract_layer_name(path, game):
-    return (
-        os.path.basename(path)
-        .replace(f"{game}_", "")
-        .replace("_RDM.npy", "")
-    )
+# def extract_layer_name(path, game):
+#     return (
+#         os.path.basename(path)
+#         .replace(f"{game}_", "")
+#         .replace("_RDM.npy", "")
+#     )
 
 def to_rdm_object(matrix):
     return RDMs(

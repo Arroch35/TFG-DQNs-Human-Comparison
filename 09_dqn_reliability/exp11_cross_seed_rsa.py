@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from itertools import combinations
+from src.utils import upper_tri
 
 # =========================================================
 # CONFIG
@@ -33,15 +34,11 @@ os.makedirs(SAVE_FOLDER, exist_ok=True)
 # =========================================================
 # HELPERS
 # =========================================================
-def upper_tri_vector(rdm):
-    idx = np.triu_indices_from(rdm, k=1)
-    return rdm[idx]
-
 
 def spearman_rsa(rdm_a, rdm_b):
     """Spearman correlation between upper triangles of two RDMs."""
-    v_a = upper_tri_vector(rdm_a)
-    v_b = upper_tri_vector(rdm_b)
+    v_a = upper_tri(rdm_a)
+    v_b = upper_tri(rdm_b)
     if np.std(v_a) == 0 or np.std(v_b) == 0:
         return np.nan
     # Spearman = Pearson on ranks

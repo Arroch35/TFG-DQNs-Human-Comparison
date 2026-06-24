@@ -55,7 +55,7 @@ No algorithmic changes have been made.
 A precompiled binary is provided in:
 
 ```text
-lib/cy_tste.pyd
+lib/cy_tste.cp311-win_amd64.pyd
 ```
 
 This binary was built for:
@@ -86,7 +86,7 @@ python setup.py build_ext --inplace
 
 The resulting extension module should be placed in `lib/`:
 
-* Windows: `cy_tste.pyd`
+* Windows: `cy_tste.cp311-win_amd64.pyd`
 * Linux/macOS: `cy_tste.so`
 
 ### Attribution and License
@@ -115,7 +115,7 @@ project/
 │       └── environment_wrappers.py # Action-restricted Atari wrappers
 │
 ├── lib/
-│   └── cy_tste.pyd                 # Compiled t-STE extension (see above)
+│   └── cy_tste.cp311-win_amd64.pyd                 # Compiled t-STE extension (see above)
 │
 ├── 01_training/                    # DQN agent training
 │   ├── train_dqn_pong.py
@@ -174,7 +174,9 @@ project/
 │   ├── exp15_full_rsa_matrix.py
 │   └── exp_appendix_continuous_difficulty.py
 │
-├── _archive/                       # Superseded scripts — kept for reference
+├── cognition/                      # Code used for the experiments design
+│   ├── individual_experiment.py
+│   └── sparse_experiment.py
 │
 ├── paper/
 │   └── TFG.pdf

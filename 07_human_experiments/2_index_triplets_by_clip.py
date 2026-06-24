@@ -1,98 +1,87 @@
-import pandas as pd
+"""
+2_index_triplets_by_clip.py
+Convert clip filenames in the merged triplets CSV into numeric indices
+using the per-game clip maps, then split output by game.
+"""
 import os
+import pandas as pd
 
-# =========================
-# 1) CONFIGURATION
-# =========================
-triplets_file = "../data/triplets_results/exp2/cleaned_results/all_participants_triplets.csv" #"../data/cleaned_results/all_participants_triplets.csv"
-games = ["pacman", "spaceinvaders", "pong"]
-output_file = "../data/triplets_results/exp2/cleaned_results/all_participants_triplets_indexed_with_difficulty.csv" # "../data/cleaned_results/all_participants_triplets_indexed.csv"
+from src.config import GAMES, GYM_ID_TO_GAME, get_path, ensure
 
-game_name_map = {
-    "MsPacmanNoFrameskip-v4": "pacman",
-    "SpaceInvadersNoFrameskip-v4": "spaceinvaders",
-    "PongNoFrameskip-v4": "pong"
-}
+# =========================================================
+# PATHS
+# =========================================================
+# Input: merged triplets from script 1, stored in exp2_cleaned
+TRIPLETS_FILE  = get_path("experiment_exp2") / "all_participants_triplets.csv"
+OUTPUT_DIR     = ensure("experiment_exp2")   # data/triplets_results/exp2/cleaned_results
 
-game_output_dir="../data/triplets_results/exp2/cleaned_results/"
+# GYM_ID_TO_GAME from config already maps gym IDs → short names, e.g.
+# "PongNoFrameskip-v4" → "pong", used below as game_name_map
+game_name_map = GYM_ID_TO_GAME   # {"PongNoFrameskip-v4": "pong", ...}
 
-os.makedirs(game_output_dir, exist_ok=True)
-
-# =========================
-# 2) LOAD MAPPINGS
-# =========================
+# =========================================================
+# LOAD CLIP MAPS
+# =========================================================
 master_map = {}
-for game in games:
-    map_path = f"../data/maps/selected_15/{game}_clip_map.csv"
-    if os.path.exists(map_path):
+for game in GAMES:
+    map_path = get_path("maps_selected15_game", game=game)
+    if map_path.exists():
         map_df = pd.read_csv(map_path)
         master_map[game] = pd.Series(map_df.clip_index.values, index=map_df.clip_name).to_dict()
         print(f"Loaded mapping for {game}.")
     else:
         print(f"Warning: {map_path} not found.")
 
-
-# =========================
-# 3) MAPPING LOGIC
-# =========================
+# =========================================================
+# MAPPING HELPER
+# =========================================================
 def get_clip_index(row, col_name):
-    # Translate technical name to short name (e.g., PongNoFrameskip-v4 -> pong)
-    raw_game = row['game_name']
-    short_game = game_name_map.get(raw_game, raw_game) 
-    
-    clip_name = str(row[col_name])
-    
-    # Try finding the clip in the appropriate map
+    short_game = game_name_map.get(row["game_name"], row["game_name"])
+    clip_name  = str(row[col_name])
+
     if short_game in master_map:
-        # Check for exact match
         if clip_name in master_map[short_game]:
             return master_map[short_game][clip_name]
-        
-        # Check if index exists without path (just in case)
         base_name = os.path.basename(clip_name)
         if base_name in master_map[short_game]:
             return master_map[short_game][base_name]
-            
+
     return None
 
-# =========================
-# 4) RUN, SPLIT & SAVE
-# =========================
-if os.path.exists(triplets_file):
-    df = pd.read_csv(triplets_file)
-    cols_to_map = ["similar_clip_1", "similar_clip_2", "odd_clip"]
-    
-    # Generate the index columns for the whole dataframe first
-    for col in cols_to_map:
+# =========================================================
+# RUN, SPLIT & SAVE
+# =========================================================
+if not TRIPLETS_FILE.exists():
+    print(f"Input file not found: {TRIPLETS_FILE}")
+else:
+    df = pd.read_csv(TRIPLETS_FILE)
+
+    for col in ["similar_clip_1", "similar_clip_2", "odd_clip"]:
         print(f"Indexing {col}...")
-        df[f"{col}_idx"] = df.apply(lambda row: get_clip_index(row, col), axis=1)
+        df[f"{col}_idx"] = df.apply(lambda row, c=col: get_clip_index(row, c), axis=1)
 
-    # We need 'game_name' to do the splitting, then we'll drop it if needed
-    output_columns = ["participant_id", "difficulty", "similar_clip_1_idx", "similar_clip_2_idx", "odd_clip_idx"]
+    OUTPUT_COLS = [
+        "participant_id", "difficulty",
+        "similar_clip_1_idx", "similar_clip_2_idx", "odd_clip_idx",
+    ]
 
-    # Loop through each game and save a separate file
-    for tech_name, short_name in game_name_map.items():
-        # Filter rows for this specific game
-        game_df = df[df["game_name"] == tech_name].copy()
-        
-        if not game_df.empty:
-            # Select only the relevant columns
-            final_game_df = game_df[[col for col in output_columns if col in game_df.columns]]
-            
-            # Create a specific filename (e.g., ../data/cleaned_results/pacman_triplets_indexed.csv)
-            game_output_path = os.path.join(game_output_dir, f"{short_name}_triplets_indexed_with_difficulty.csv") #f"../data/cleaned_results/{short_name}_triplets_indexed.csv"
-            
-            final_game_df.to_csv(game_output_path, index=False)
-            
-            # Validation for this game
-            missing = final_game_df["odd_clip_idx"].isna().sum()
-            print(f"--- {short_name.upper()} ---")
-            print(f"Saved to: {game_output_path}")
-            if missing > 0:
-                print(f"Warning: {missing} rows unmapped in {short_name}.")
-            else:
-                print(f"All {len(final_game_df)} rows indexed successfully.")
+    for gym_id, short_name in game_name_map.items():
+        game_df = df[df["game_name"] == gym_id].copy()
+
+        if game_df.empty:
+            print(f"No data for {short_name}, skipping.")
+            continue
+
+        final_df     = game_df[[c for c in OUTPUT_COLS if c in game_df.columns]]
+        out_path     = OUTPUT_DIR / f"{short_name}_triplets_indexed_with_difficulty.csv"
+        final_df.to_csv(out_path, index=False)
+
+        missing = final_df["odd_clip_idx"].isna().sum()
+        print(f"\n--- {short_name.upper()} ---")
+        print(f"Saved {len(final_df)} rows → {out_path}")
+        if missing:
+            print(f"Warning: {missing} rows unmapped.")
         else:
-            print(f"No data found for {short_name}, skipping file creation.")
+            print("All rows indexed successfully.")
 
     print("\nProcessing complete.")

@@ -1,3 +1,8 @@
+"""
+2_train_pixel_pca_model.py
+Train per-game, per-seed PCA models on flattened pixel states
+produced by 1_build_pca_training_set.py.
+"""
 import os
 import joblib
 import numpy as np
@@ -5,134 +10,65 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
+from src.config import GAMES, SEEDS, REPR, get_path, ensure
+
 # =========================================================
 # CONFIG
 # =========================================================
+N_COMPONENTS = REPR["n_pca_components"]   # 100
+NORMALIZE    = True
 
-GAMES = ["pacman", "pong", "spaceinvaders"]
-
-seeds = ["seed_0", "seed_1","seed_2", "seed_3", "seed_42"]
-
-N_COMPONENTS = 100
-NORMALIZE = True
-
-SAVE_FOLDER = f"../models/pca_models/pixel_pca_models/"
-
-os.makedirs(SAVE_FOLDER, exist_ok=True)
-
+# Suggested addition to config.py PATHS (same as script 1):
+#   "dqn_pca_training": DATA / "dqn_state_action_qvalue" / "{seed}" / "pca_training_set" / "{game}",
+from src.config import DATA
+def get_dqn_pca_training(seed, game):
+    return DATA / "dqn_state_action_qvalue" / seed / "pca_training_set" / game
 
 # =========================================================
-# PROCESS EACH GAME
+# MAIN
 # =========================================================
-
-for seed in seeds:
-
-    print("\n" + "=" * 60)
-    print(f"TRAINING PCA FOR SEED: {seed}")
-    print("=" * 60)
-
-    DATA_FOLDER = f"../data/dqn_state_action_qvalue/{seed}/pca_training_set/"
-
+for seed in SEEDS:
+    print(f"\n{'='*60}\nSeed: {seed}\n{'='*60}")
 
     for game in GAMES:
+        print(f"\n{'='*60}\nGame: {game}\n{'='*60}")
 
-        print("\n" + "=" * 60)
-        print(f"TRAINING PCA FOR GAME: {game}")
-        print("=" * 60)
+        data_folder = get_dqn_pca_training(seed, game)
 
-        # -----------------------------------------------------
-        # Find files
-        # -----------------------------------------------------
+        files = [f for f in os.listdir(data_folder) if f.endswith(".npz") and game in f.lower()]
 
-        game_file_path = os.path.join(DATA_FOLDER, game)
-
-        files = [
-            f for f in os.listdir(game_file_path)
-            if f.endswith(".npz") and game in f.lower()
-        ]
-
-        if len(files) == 0:
+        if not files:
             print(f"No files found for {game}")
             continue
 
         print(f"Found {len(files)} files")
 
-        # -----------------------------------------------------
-        # Load data
-        # -----------------------------------------------------
+        # ── Load states ───────────────────────────────────
+        X = np.array([np.load(data_folder / f)["state"] for f in tqdm(files)])
+        print("Original shape:", X.shape)
 
-        X = []
-
-        for file in tqdm(files):
-
-            file_path = os.path.join(game_file_path, file)
-            data = np.load(file_path)
-
-            # only one key now: "state"
-            state = data["state"]
-
-            X.append(state)
-
-        X = np.array(X)
-
-        print("Original shape:", X.shape)  # (N_samples, 28224)
-
-        # -----------------------------------------------------
-        # Normalize
-        # -----------------------------------------------------
-
+        # ── Normalize ─────────────────────────────────────
         scaler = None
-
         if NORMALIZE:
             scaler = StandardScaler()
-            X = scaler.fit_transform(X)
+            X      = scaler.fit_transform(X)
             print("Features normalized")
 
-        # -----------------------------------------------------
-        # PCA
-        # -----------------------------------------------------
-
-        n_components = min(
-            N_COMPONENTS,
-            X.shape[0],
-            X.shape[1]
-        )
-
+        # ── PCA ───────────────────────────────────────────
+        n_components = min(N_COMPONENTS, X.shape[0], X.shape[1])
         print(f"Training PCA with {n_components} components")
 
-        pca = PCA(
-            n_components=n_components,
-            svd_solver="full"
-        )
-
+        pca   = PCA(n_components=n_components, svd_solver="full")
         X_pca = pca.fit_transform(X)
 
-        print("PCA output shape:", X_pca.shape)
+        print(f"PCA output shape: {X_pca.shape}")
+        print(f"Explained variance: {np.sum(pca.explained_variance_ratio_):.4f}")
 
-        explained = np.sum(pca.explained_variance_ratio_)
+        # ── Save ──────────────────────────────────────────
+        save_path = get_path("models_pca_pixel", game=game, seed=seed) / f"{game}_state_pca.pkl"
+        save_path.parent.mkdir(parents=True, exist_ok=True)
 
-        print(f"Explained variance: {explained:.4f}")
-
-        # -----------------------------------------------------
-        # SAVE MODEL
-        # -----------------------------------------------------
-
-        save_dict = {
-            "pca": pca,
-            "scaler": scaler
-        }
-
-        os.makedirs(os.path.join(SAVE_FOLDER, game, seed), exist_ok=True)
-
-        save_path = os.path.join(
-            SAVE_FOLDER,
-            game,
-            seed,
-            f"{game}_state_pca.pkl"
-        )
-
-        joblib.dump(save_dict, save_path)
-
+        joblib.dump({"pca": pca, "scaler": scaler}, save_path)
         print(f"Saved PCA model: {save_path}")
 
-    print("\nAll PCA models trained successfully.")
+print("\nAll PCA models trained successfully.")

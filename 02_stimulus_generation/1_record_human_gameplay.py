@@ -7,62 +7,60 @@ import os
 import threading
 import queue
 
-# 🔴 NEW IMPORTS
 from stable_baselines3.common.atari_wrappers import AtariWrapper
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 
 from wrappers.custom_atari_wrapper import CustomAtariWrapper
+from src.config import GAMES, GAME_TO_GYM_ID, SEEDS, get_path
 
 # ----------------------------
 # CONFIGURATION
 # ----------------------------
-GAMES = ["PongNoFrameskip-v4", "MsPacmanNoFrameskip-v4", "SpaceInvadersNoFrameskip-v4"]
-GAME = GAMES[2]
+GAME = GAMES[2]                            # "spaceinvaders"
+GYM_ID = GAME_TO_GYM_ID[GAME]             # "SpaceInvadersNoFrameskip-v4"
 
 SUBJECT_ID = "sub_training_set_pca"
 BLOCK_INDEX = 1
 BLOCK_DURATION_MINUTES = 15
 FPS = 60
 FRAME_SKIP = 1
-SAVE_FOLDER = "../data/human_plays/pca_training"
+SAVE_FOLDER = get_path("recordings_pca")   # data/human_plays/pca_training
 CHUNK_SIZE = 5000
 
-# 🔴 NEW: FIXED SEED (important for reproducibility)
 SEED = 200
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
 # ----------------------------
-# AUTOMATIC CONTROLS
+# CONTROLS
 # ----------------------------
 KEYS_TO_ACTION = {
-    GAMES[0]: {(ord("w"),): 2, (ord("s"),): 3},
-    GAMES[1]: {(ord("w"),): 1, (ord("d"),): 2, (ord("a"),): 3, (ord("s"),): 4},
-    GAMES[2]: {(ord("w"),): 1, (ord("d"),): 2, (ord("a"),): 3}
+    GAME_TO_GYM_ID["pong"]:          {(ord("w"),): 2, (ord("s"),): 3},
+    GAME_TO_GYM_ID["pacman"]:        {(ord("w"),): 1, (ord("d"),): 2, (ord("a"),): 3, (ord("s"),): 4},
+    GAME_TO_GYM_ID["spaceinvaders"]: {(ord("w"),): 1, (ord("d"),): 2, (ord("a"),): 3},
 }
 
-if GAME not in KEYS_TO_ACTION:
-    raise ValueError(f"No key mapping defined for {GAME}")
+if GYM_ID not in KEYS_TO_ACTION:
+    raise ValueError(f"No key mapping defined for {GYM_ID}")
 
-keys_to_action = KEYS_TO_ACTION[GAME]
+keys_to_action = KEYS_TO_ACTION[GYM_ID]
 
 # ----------------------------
-# 🔴 NEW: CREATE DQN ENV
+# CREATE DQN ENV
 # ----------------------------
 def make_dqn_env():
-    e = gym.make(GAME)
+    e = gym.make(GYM_ID)
     e = AtariWrapper(e)
     return e
 
 dqn_env = DummyVecEnv([make_dqn_env])
 dqn_env = VecFrameStack(dqn_env, n_stack=4)
 
-
 # ----------------------------
-# 🔴 NEW: CREATE DQN ENV
+# CREATE HUMAN-READABLE ENV
 # ----------------------------
 def make_human_readable_env():
-    e = gym.make(GAME)
+    e = gym.make(GYM_ID)
     e = CustomAtariWrapper(e)
     return e
 
@@ -102,7 +100,7 @@ def saver_worker():
 
         chunk_data, suffix = item
 
-        filename = f"{SUBJECT_ID}_{GAME.split('/')[-1]}_block{BLOCK_INDEX}_{suffix}.npz"
+        filename = f"{SUBJECT_ID}_{GYM_ID.split('/')[-1]}_block{BLOCK_INDEX}_{suffix}.npz"
         filepath = os.path.join(SAVE_FOLDER, filename)
 
         print(f"[Saver] Saving {len(chunk_data['actions'])} steps to {filepath}...")
@@ -110,8 +108,6 @@ def saver_worker():
         np.savez_compressed(
             filepath,
             frames=np.array(chunk_data["frames"], dtype=np.uint8),
-            # dqn_obs=np.array(chunk_data["dqn_obs"], dtype=np.uint8),  # 🔴 NEW
-            # human_readable_obs=np.array(chunk_data["human_readable_obs"], dtype=np.uint8),
             actions=np.array(chunk_data["actions"], dtype=np.int16),
             rewards=np.array(chunk_data["rewards"], dtype=np.float32),
             terminated=np.array(chunk_data["terminated"], dtype=bool),
@@ -139,8 +135,6 @@ def flush_buffer_to_queue(final=False):
     chunk_data = buffer
     buffer = {
         "frames": [],
-        # "dqn_obs": [],  # 🔴 NEW
-        # "human_readable_obs": [],
         "actions": [],
         "rewards": [],
         "terminated": [],
@@ -166,24 +160,10 @@ def my_callback(obs_t, obs_tp1, action, rew, terminated, truncated, info):
     elapsed = current_time - start_time
     print(action)
 
-    # 🔴 HUMAN FRAME (use render, not obs_tp1)
     frame = env.render()
 
-    # 🔴 STEP DQN ENV WITH SAME ACTION
-    # dqn_obs, _, _, _ = dqn_env.step([action])
-
-    # # 🔴 STEP DQN ENV WITH SAME ACTION
-    # human_obs, _, _, _ = human_env.step([action])
-
-    # ----------------------------
-    # STORE DATA
-    # ----------------------------
     print(frame.shape)
-    # print(dqn_obs[0].shape)
-    # print(human_obs[0].shape)
     buffer["frames"].append(frame.copy())
-    # buffer["dqn_obs"].append(dqn_obs[0].copy())  # (4,84,84)
-    # buffer["human_readable_obs"].append(human_obs[0].copy())
     buffer["actions"].append(action)
     buffer["rewards"].append(rew)
     buffer["terminated"].append(terminated)
@@ -193,14 +173,12 @@ def my_callback(obs_t, obs_tp1, action, rew, terminated, truncated, info):
 
     if terminated or truncated:
         episode_counter += 1
-        dqn_env.reset()  # 🔴 IMPORTANT
+        dqn_env.reset()
         human_env.reset()
 
-    # # SAVE CHUNK
     if len(buffer["actions"]) >= CHUNK_SIZE:
         flush_buffer_to_queue(final=False)
 
-    # END BLOCK
     if elapsed >= MAX_SECONDS:
         print("--- Block finished ---")
         flush_buffer_to_queue(final=True)
@@ -210,9 +188,8 @@ def my_callback(obs_t, obs_tp1, action, rew, terminated, truncated, info):
 # RUN BLOCK
 # ----------------------------
 if __name__ == "__main__":
-    env = gym.make(GAME, render_mode="rgb_array", frameskip=FRAME_SKIP)
+    env = gym.make(GYM_ID, render_mode="rgb_array", frameskip=FRAME_SKIP)
 
-    # 🔴 SYNC SEEDS
     obs, _ = env.reset(seed=SEED)
 
     dqn_env.seed(SEED)

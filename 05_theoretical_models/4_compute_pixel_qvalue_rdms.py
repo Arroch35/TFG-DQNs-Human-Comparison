@@ -1,151 +1,95 @@
+"""
+4_compute_pixel_qvalue_rdms.py
+Compute RDMs for pixel state, PCA state, Q-values, action, and state value
+for each game × seed.
+"""
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import rsatoolbox
 from rsatoolbox.data import Dataset
 from rsatoolbox.rdm import calc_rdm
+
+from src.config import GAMES, SEEDS, get_path
 
 # =========================================================
 # CONFIG
 # =========================================================
+# Only a subset of seeds was used in the original — keep that
+# flexibility by letting you pass a custom list, defaulting to all.
+ACTIVE_SEEDS = ["seed_0", "seed_2"]   # change or use SEEDS for all
 
-GAMES = ["pong", "pacman", "spaceinvaders"]
-
-seeds = ["seed_0", "seed_2"]
-
+# Suggested addition to config.py PATHS:
+#   "dqn_selected15": DATA / "dqn_state_action_qvalue" / "{seed}" / "selected_subset_15" / "{game}",
+from src.config import DATA
+def get_dqn_selected15(seed, game):
+    return DATA / "dqn_state_action_qvalue" / seed / "selected_subset_15" / game
 
 # =========================================================
 # HELPERS
 # =========================================================
-
 def save_rdm(rdm, save_base):
-
     matrix = rdm.get_matrices()[0]
-
-    np.save(save_base + ".npy", matrix)
+    np.save(str(save_base) + ".npy", matrix)
 
     plt.figure(figsize=(6, 5))
     plt.imshow(matrix)
     plt.colorbar()
-    plt.title(os.path.basename(save_base))
+    plt.title(save_base.name)
     plt.tight_layout()
-    plt.savefig(save_base + ".png", dpi=300)
+    plt.savefig(str(save_base) + ".png", dpi=300)
     plt.close()
 
 # =========================================================
 # MAIN
 # =========================================================
-
-for seed in seeds:
-
-    print("\n" + "=" * 60)
-    print(f"Processing seed: {seed}")
-    print("=" * 60) 
-
-    BASE_FOLDER = f"../data/dqn_state_action_qvalue/{seed}/selected_subset_15" #"../data/dqn_state_action_qvalue/{seed}/big_rdm_equal_size" #"../data/dqn_state_action_qvalue/{seed}/internal_rdms"
+for seed in ACTIVE_SEEDS:
+    print(f"\n{'='*60}\nSeed: {seed}\n{'='*60}")
 
     for game in GAMES:
+        print(f"\n{'='*60}\n{game}\n{'='*60}")
 
-        print("\n" + "=" * 60)
-        print(game)
-        print("=" * 60)
+        input_folder = get_dqn_selected15(seed, game)
 
-        input_folder = os.path.join(BASE_FOLDER, game)
-
-        files = sorted([
+        files = sorted(
             f for f in os.listdir(input_folder)
-            if f.endswith(".npz")
-            and f != "rdms.npz"
-        ])
+            if f.endswith(".npz") and f != "rdms.npz"
+        )
 
-        states = []
-        states_pca = []
-        q_values = []
-        actions = []
-        values = []
+        states, states_pca, q_values, actions, values = [], [], [], [], []
 
         for file in files:
-
-            data = np.load(os.path.join(input_folder, file))
-
+            data = np.load(input_folder / file)
             states.append(data["state"])
             states_pca.append(data["state_pca"])
             q_values.append(data["q_values"])
             actions.append([int(data["action"])])
             values.append([float(data["value"])])
 
-        states = np.asarray(states)
+        states     = np.asarray(states)
         states_pca = np.asarray(states_pca)
-        q_values = np.asarray(q_values)
-        actions = np.asarray(actions)
-        values = np.asarray(values)
+        q_values   = np.asarray(q_values)
+        actions    = np.asarray(actions)
+        values     = np.asarray(values)
 
-        print("states:", states.shape)
-        print("states_pca:", states_pca.shape)
-        print("q_values:", q_values.shape)
+        print(f"states: {states.shape}  states_pca: {states_pca.shape}  q_values: {q_values.shape}")
 
-        # =====================================================
-        # CREATE DATASETS
-        # =====================================================
+        # ── Compute RDMs ──────────────────────────────────
+        rdm_state     = calc_rdm(Dataset(states),     method="correlation")
+        rdm_state_pca = calc_rdm(Dataset(states_pca), method="correlation")
+        rdm_qvalues   = calc_rdm(Dataset(q_values),   method="correlation")
+        rdm_action    = calc_rdm(Dataset(actions),    method="euclidean")
+        rdm_value     = calc_rdm(Dataset(values),     method="euclidean")
 
-        ds_state = Dataset(states)
-        ds_state_pca = Dataset(states_pca)
-        ds_qvalues = Dataset(q_values)
-        ds_action = Dataset(actions)
-        ds_value = Dataset(values)
+        # ── Save RDMs ─────────────────────────────────────
+        rdms_folder = input_folder / "rdms"
+        rdms_folder.mkdir(parents=True, exist_ok=True)
 
-        # =====================================================
-        # COMPUTE RDMS
-        # =====================================================
-
-        print("Computing state RDM...")
-        rdm_state = calc_rdm(ds_state, method='correlation')
-
-        print("Computing PCA RDM...")
-        rdm_state_pca = calc_rdm(ds_state_pca, method='correlation')
-
-        print("Computing Q-value RDM...")
-        rdm_qvalues = calc_rdm(ds_qvalues, method='correlation')
-
-        print("Computing action RDM...")
-        rdm_action = calc_rdm(ds_action, method='euclidean')
-
-        print("Computing value RDM...")
-        rdm_value = calc_rdm(ds_value, method='euclidean')
-
-        # =====================================================
-        # SAVE
-        # =====================================================
-
-        rdms_folder = os.path.join(input_folder, "rdms")
-
-        os.makedirs(rdms_folder, exist_ok=True)
-
-        save_rdm(
-            rdm_state,
-            os.path.join(rdms_folder, "pixel_rdm")
-        )
-
-        save_rdm(
-            rdm_state_pca,
-            os.path.join(rdms_folder, "pixel_pca_rdm")
-        )
-
-        save_rdm(
-            rdm_qvalues,
-            os.path.join(rdms_folder, "qvalue_rdm")
-        )
-
-        save_rdm(
-            rdm_action,
-            os.path.join(rdms_folder, "action_rdm")
-        )
-
-        save_rdm(
-            rdm_value,
-            os.path.join(rdms_folder, "state_value_rdm")
-        )
+        save_rdm(rdm_state,     rdms_folder / "pixel_rdm")
+        save_rdm(rdm_state_pca, rdms_folder / "pixel_pca_rdm")
+        save_rdm(rdm_qvalues,   rdms_folder / "qvalue_rdm")
+        save_rdm(rdm_action,    rdms_folder / "action_rdm")
+        save_rdm(rdm_value,     rdms_folder / "state_value_rdm")
 
         print("Saved all RDMs.")
 
-    print("\nDone.")
+print("\nDone.")

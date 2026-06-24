@@ -1,54 +1,65 @@
-import os
+"""
+5_filter_sparse_to_pong60_subset.py
+Filter the sparse pong results down to only the 60 reference triplets
+defined in the DQN triplet JSON.
+"""
 import json
+import os
 import pandas as pd
 
-# =========================
-# CONFIGURATION
-# =========================
-game = "pong"
-json_key = "PongNoFrameskip-v4"
-difficulties = ["easy_triplets", "medium_triplets", "hard_triplets"]
+from src.config import REFERENCE_SEED, get_path, ensure
 
-sparse_file = "../data/triplets_results/final_experiment/cleaned_results/pong_triplets_indexed_with_difficulty.csv"
-dqn_triplets_path = "../data/jsons/pong_final_triplet_exp.json"
-output_dir = "../data/triplets_results/exp2/cleaned_results/sparse_individual_subset"
-os.makedirs(output_dir, exist_ok=True)
+# =========================================================
+# CONFIG
+# =========================================================
+GAME        = "pong"
+GYM_KEY     = "PongNoFrameskip-v4"
+DIFFICULTIES = ["easy_triplets", "medium_triplets", "hard_triplets"]
 
-# =========================
-# LOAD JSON — 60 REFERENCE TRIPLETS
-# =========================
-with open(dqn_triplets_path, "r") as f:
+# Paths — all from config
+SPARSE_FILE      = get_path("experiment_cleaned") / "pong_triplets_indexed_with_difficulty.csv"
+DQN_TRIPLETS_JSON = get_path("jsons_pong_triplets")
+
+# Suggested addition to config.py PATHS:
+#   "exp2_sparse_subset": DATA / "triplets_results" / "exp2" / "cleaned_results" / "sparse_individual_subset",
+from src.config import DATA
+OUTPUT_DIR = DATA / "triplets_results" / "exp2" / "cleaned_results" / "sparse_individual_subset"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# =========================================================
+# LOAD REFERENCE TRIPLETS (60 DQN-defined triplets)
+# =========================================================
+with open(DQN_TRIPLETS_JSON, "r") as f:
     dqn_triplets_raw = json.load(f)
 
 reference_triplets = set()
-for difficulty in difficulties:
-    for triplet in dqn_triplets_raw[json_key][difficulty]:
+for difficulty in DIFFICULTIES:
+    for triplet in dqn_triplets_raw[GYM_KEY][difficulty]:
         reference_triplets.add(frozenset(triplet))
 
 print(f"Reference triplets loaded: {len(reference_triplets)}")
 
-# =========================
-# FILTER SPARSE CSV
-# =========================
-df = pd.read_csv(sparse_file)
+# =========================================================
+# FILTER
+# =========================================================
+df = pd.read_csv(SPARSE_FILE)
 
 df["triplet_id"] = df.apply(
     lambda row: frozenset({row["similar_clip_1_idx"], row["similar_clip_2_idx"], row["odd_clip_idx"]}),
-    axis=1
+    axis=1,
 )
 
-mask = df["triplet_id"].apply(lambda x: x in reference_triplets)
-filtered_df = df[mask].drop(columns=["triplet_id"])
+filtered_df = df[df["triplet_id"].isin(reference_triplets)].drop(columns=["triplet_id"])
 
-n_total = len(df)
-n_kept = len(filtered_df)
+n_total  = len(df)
+n_kept   = len(filtered_df)
 n_unique = filtered_df.apply(
     lambda row: frozenset({row["similar_clip_1_idx"], row["similar_clip_2_idx"], row["odd_clip_idx"]}),
-    axis=1
+    axis=1,
 ).nunique()
 
-print(f"{game}: {n_total} sparse rows → {n_kept} kept ({n_unique} unique triplets matched out of 60)")
+print(f"{GAME}: {n_total} sparse rows → {n_kept} kept ({n_unique} unique triplets matched out of 60)")
 
-output_file = os.path.join(output_dir, f"{game}_sparse_individual_subset.csv")
+output_file = OUTPUT_DIR / f"{GAME}_sparse_individual_subset.csv"
 filtered_df.to_csv(output_file, index=False)
-print(f"Saved to {output_file}")
+print(f"Saved → {output_file}")

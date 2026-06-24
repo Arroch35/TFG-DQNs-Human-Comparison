@@ -74,8 +74,6 @@ human_env = VecFrameStack(human_env, n_stack=4)
 # ----------------------------
 buffer = {
     "frames": [],
-    #"dqn_obs": [],  # 🔴 NEW
-    #"human_readable_obs": [],
     "actions": [],
     "rewards": [],
     "terminated": [],

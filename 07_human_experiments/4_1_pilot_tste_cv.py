@@ -6,10 +6,10 @@ t-STE cross-validation — pilot version.
 import os
 import numpy as np
 import pandas as pd
-import cy_tste
 from scipy.spatial.distance import cdist
 
 from src.config import GAMES, get_path, ensure
+import cy_tste
 
 # =========================================================
 # CONFIG
@@ -26,9 +26,8 @@ USE_LOG  = True
 #   "exp_own_data":      DATA / "triplets_results" / "own_data" / "cleaned_results",
 #   "tste_cv_pilot":     DATA / "triplets_results" / "own_data" / "cleaned_results" / "tste_cv_results",
 from src.config import DATA
-BASE_INPUT_DIR  = DATA / "triplets_results" / "own_data" / "cleaned_results"
-BASE_OUTPUT_DIR = DATA / "triplets_results" / "own_data" / "cleaned_results" / "tste_cv_results"
-BASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+BASE_INPUT_DIR  = get_path("experiment_pilot")
+BASE_OUTPUT_DIR = ensure("results_cv_pilot")
 
 # =========================================================
 # HELPERS

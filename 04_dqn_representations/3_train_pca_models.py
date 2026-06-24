@@ -14,23 +14,12 @@ from src.utils import extract_layer_name
 # Single seed: PCA is trained on one fixed recording session,
 # then applied to all seeds at inference time.
 # Change this to the seed whose pca_training recordings you want to use.
-SEED = "seed_2"
+SEED = "seed_42"
 
 N_COMPONENTS = REPR["n_pca_components"]     # 100
 NORMALIZE    = True                         # required for correlation distance
 
-# ⚠️  PATH NOTE:
-# config.py defines two candidate paths for PCA-training activations:
-#
-#   "activations_pca"  →  data/multi_seed/activations/pca_training/{seed}
-#   (no key)           →  data/test_16_PRUEBAS/pca_training/{seed}   ← used here
-#
-# The second path has no config entry yet.  Suggested addition to config.py:
-#   "activations_pca_pruebas": DATA / "test_16_PRUEBAS" / "pca_training" / "{seed}",
-#
-# Until that key is added we derive the path manually:
-from src.config import DATA
-ACTIVATIONS_FOLDER = DATA / "test_16_PRUEBAS" / "pca_training" / SEED
+ACTIVATIONS_FOLDER = get_path("activations_pca_seed", seed=SEED)
 
 # =========================================================
 # PROCESS EACH GAME

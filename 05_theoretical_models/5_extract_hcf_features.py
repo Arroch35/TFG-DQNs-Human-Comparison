@@ -15,12 +15,8 @@ from src.config import REFERENCE_SEED, get_path, ensure
 # =========================================================
 # CONFIG
 # =========================================================
-# Arrays source: big-RDM pong frames
-# Suggested addition to config.py PATHS:
-#   "arrays_big_rdm": DATA / "test_16_arrays" / "big_rdm_equal_size" / "{game}",
-# Until then, derived manually:
-from src.config import DATA
-ARRAYS_FOLDER = DATA / "test_16_arrays" / "big_rdm_equal_size" / "pong"
+
+ARRAYS_FOLDER = get_path("arrays_bigset_game", game="pong")
 
 # Use the reference-seed subset filter (set to None to process all clips)
 FILTER_CSV = get_path("subsets_csv", seed=REFERENCE_SEED, game="pong")  # or None

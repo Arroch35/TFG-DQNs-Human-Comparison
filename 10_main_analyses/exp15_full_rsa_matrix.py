@@ -16,18 +16,9 @@ from src.utils import extract_layer_name
 # =========================================================
 # CONFIG
 # =========================================================
-# "selected_subset_15" is the directory variant used here.
-# The config keys rdms_selected15 and full_rsa already encode this.
-SPECIFIC_DIR = "selected_subset_15"
 
 # Seeds to process (original only used seed_42)
 ACTIVE_SEEDS = [REFERENCE_SEED]   # extend to SEEDS for all
-
-# Suggested addition to config.py PATHS:
-#   "dqn_rdms_game": DATA / "dqn_state_action_qvalue" / "{seed}" / "{variant}" / "{game}" / "rdms",
-from src.config import DATA
-def get_dqn_rdms_folder(seed, game):
-    return DATA / "dqn_state_action_qvalue" / seed / SPECIFIC_DIR / game / "rdms"
 
 # =========================================================
 # HELPERS
@@ -79,7 +70,7 @@ for seed in ACTIVE_SEEDS:
         print(f"\n{'='*70}\nGAME: {game}\n{'='*70}")
 
         # ── Internal RDMs (pixel, pixel_pca) ──────────────
-        internal_folder = get_dqn_rdms_folder(seed, game)
+        internal_folder = get_path("states_subset15_game", seed=seed, game=game)
         internal_rdms   = {}
         for key in ["pixel_rdm", "pixel_pca_rdm"]:
             path = internal_folder / f"{key}.npy"
@@ -88,7 +79,7 @@ for seed in ACTIVE_SEEDS:
             internal_rdms[key] = np.load(path)
 
         # ── DQN layer RDMs ────────────────────────────────
-        dqn_folder = get_path("rdms_selected15", seed=seed, game=game)
+        dqn_folder = get_path("rdms_subset15", seed=seed, game=game)
         dqn_files  = sorted(dqn_folder.glob("*RDM.npy"))
         dqn_rdms   = {extract_layer_name(str(f), game): np.load(f) for f in dqn_files}
 

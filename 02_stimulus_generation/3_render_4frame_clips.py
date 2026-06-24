@@ -52,7 +52,7 @@ def process_npy_folder(input_folder, output_folder, fps=10):
 
 if __name__ == "__main__":
     for game in GAMES:
-        input_folder  = get_path("arrays_buenos25_game", game=game)   # data/test_16_arrays/buenos_25/{game}
-        output_folder = get_path("clips_buenos25_game",  game=game)   # data/test_16_clips/{game}/buenos_25/human_dqn_visualitzation
+        input_folder  = get_path("arrays_pool25_game", game=game)   
+        output_folder = get_path("clips_pool25_game",  game=game)
         os.makedirs(output_folder, exist_ok=True)
         process_npy_folder(str(input_folder), str(output_folder), fps=2)

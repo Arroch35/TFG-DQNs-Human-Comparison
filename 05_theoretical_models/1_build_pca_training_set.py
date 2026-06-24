@@ -18,7 +18,7 @@ from stable_baselines3.common.atari_wrappers import AtariWrapper
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import VecFrameStack, DummyVecEnv
 
-from src.config import GAMES, SEEDS, GAME_TO_GYM_ID, MODELS, get_path, ensure
+from src.config import GAMES, SEEDS, GAME_TO_GYM_ID, DEVICE, MODELS, get_path, ensure
 from src.models.custom_dqn import CustomCNN
 from src.wrappers.environment_wrappers import (
     RestrictPongActions,
@@ -26,20 +26,6 @@ from src.wrappers.environment_wrappers import (
     RestrictSpaceInvadorsActions,
 )
 from src.utils import dqn_preprocess_from_16_frames
-
-# =========================================================
-# CONFIG
-# =========================================================
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Suggested addition to config.py PATHS:
-#   "dqn_pca_training": DATA / "dqn_state_action_qvalue" / "{seed}" / "pca_training_set" / "{game}",
-# Until then, derived manually:
-from src.config import DATA
-def get_dqn_pca_training(seed, game):
-    p = DATA / "dqn_state_action_qvalue" / seed / "pca_training_set" / game
-    p.mkdir(parents=True, exist_ok=True)
-    return p
 
 # =========================================================
 # ENVIRONMENT
@@ -69,7 +55,7 @@ for seed in SEEDS:
         print(f"\nProcessing game: {game}")
 
         frames_folder = get_path("arrays_pca_game", game=game)
-        output_folder = get_dqn_pca_training(seed, game)
+        output_folder = ensure("states_pca_game", seed=seed, game=game)
 
         clip_files = sorted(f for f in os.listdir(frames_folder) if f.endswith(".npy"))
 

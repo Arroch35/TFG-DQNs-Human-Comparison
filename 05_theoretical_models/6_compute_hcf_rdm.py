@@ -14,11 +14,11 @@ from src.config import get_path, ensure
 # =========================================================
 # PATHS (both already defined in config.py)
 # =========================================================
-HCF_JSON    = get_path("jsons_hcf_features")            # data/jsons/big_rdm_equal_size/pong_hcf_features.json
-SAVE_FOLDER = get_path("rdms_hcf").parent               # data/test_16_rdms/big_rdm_equal_size/pong/hcf/
+HCF_JSON    = get_path("jsons_hcf_features")            
+SAVE_FOLDER = get_path("rdms_hcf").parent              
 SAVE_FOLDER.mkdir(parents=True, exist_ok=True)
 
-RDM_SAVE    = get_path("rdms_hcf")                      # …/pong_hcf_rdm.npy
+RDM_SAVE    = get_path("rdms_hcf")                   
 PNG_SAVE    = SAVE_FOLDER / "pong_hcf_rdm.png"
 
 # =========================================================

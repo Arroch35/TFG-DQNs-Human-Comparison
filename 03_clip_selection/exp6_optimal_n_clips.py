@@ -23,15 +23,15 @@ SUBSET_SIZES = [10, 12, 15, 20, 25, 30, 50]
 N_SUBSETS    = 1000
 
 # Paths
-ACTIVATIONS_FOLDER = get_path("activations_buenos25_seed", seed=SEED)
-FULL_RSA_FOLDER    = get_path("rdms_big",             seed=SEED, game="{game}")   # templated per game below
-OUTPUT_FOLDER      = ensure("rdms_big", seed=SEED, game="extra")                  # reuse structure; see note
+ACTIVATIONS_FOLDER = get_path("activations_pool25_seed", seed=SEED)
+FULL_RSA_FOLDER    = get_path("rdms_bigset", seed=SEED, game="{game}")   # templated per game below
+OUTPUT_FOLDER      = ensure("rdms_bigset", seed=SEED, game="extra")                  # reuse structure; see note
 
 # NOTE: OUTPUT_FOLDER ("../data/extra") has no matching key in config.py.
 # Suggested addition:
 #   "exp_extra": DATA / "extra",
 # Until then, fall back to a sibling of rdms_big:
-OUTPUT_FOLDER = get_path("rdms_big", seed=SEED, game="extra").parent.parent / "extra"
+OUTPUT_FOLDER = get_path("rdms_bigset", seed=SEED, game="extra").parent.parent / "extra"
 OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
 
 # =========================================================
@@ -118,7 +118,7 @@ for subset_size in SUBSET_SIZES:
         for method in METHODS:
             print(f"\n--- {method} ---")
 
-            full_path = get_path("rdms_big", seed=SEED, game=game) / f"{game}_DQN_layer_RSA_{method}_matrix.npy"
+            full_path = get_path("rdms_bigset", seed=SEED, game=game) / f"{game}_DQN_layer_RSA_{method}_matrix.npy"
             full_rsa  = np.load(full_path)
 
             correlations = []

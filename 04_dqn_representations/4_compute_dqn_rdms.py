@@ -24,14 +24,14 @@ METHOD = REPR["rdm_method"]     # "correlation"
 # =========================================================
 for seed in EVAL_SEEDS:
 
-    activations_folder = get_path("activations_buenos25_seed", seed=seed)
+    activations_folder = get_path("activations_pool25_seed", seed=seed)
 
     for game in GAMES:
         print("\n" + "=" * 60)
         print(f"PROCESSING: {game}  |  {seed}")
         print("=" * 60)
 
-        game_save_folder = ensure("rdms_selected15", seed=seed, game=game)
+        game_save_folder = ensure("rdms_subset15", seed=seed, game=game)
 
         # ── Find activation files ────────────────────────
         all_files = [

@@ -7,10 +7,10 @@ against seed_42's RDM. The mean across seeds is the noise ceiling.
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-import cy_tste
 
 from src.config import GAMES, SEEDS, REFERENCE_SEED, TSTE, REPR, get_path, ensure
 from src.utils import embedding_to_rdm, add_symmetric_triplets
+import cy_tste
 
 # =========================================================
 # CONFIG
@@ -55,7 +55,7 @@ for game in GAMES:
     print(f"\n{'='*60}\nGAME: {game}\n{'='*60}")
 
     # ── Clip map ──────────────────────────────────────────
-    clip_map_path = get_path("maps_selected15_game", game=game)
+    clip_map_path = get_path("maps_subset15_game", game=game)
     if not clip_map_path.exists():
         print(f"  Missing clip map: {clip_map_path}, skipping."); continue
 
@@ -64,7 +64,7 @@ for game in GAMES:
     n_clips       = len(clip_map_df)
 
     # ── seed_42 RDM (subselected to the 15 experiment clips) ──
-    rdm42_path = get_path("rdms_selected15", seed=SEED_42, game=game) / f"{game}_fc_{RDM_METHOD}_RDM.npy"
+    rdm42_path = get_path("rdms_subset15", seed=SEED_42, game=game) / f"{game}_fc_{RDM_METHOD}_RDM.npy"
     if not rdm42_path.exists():
         print(f"  Missing seed_42 RDM: {rdm42_path}, skipping."); continue
 
@@ -79,7 +79,7 @@ for game in GAMES:
     master_df = pd.read_csv(master_csv)
 
     # ── Sparse human responses ────────────────────────────
-    sparse_csv = get_path("experiment_cleaned") / f"{game}_triplets_indexed_with_difficulty.csv"
+    sparse_csv = get_path("experiment_sparse") / f"{game}_triplets_indexed_with_difficulty.csv"
     if not sparse_csv.exists():
         print(f"  Missing sparse responses: {sparse_csv}, skipping."); continue
     sparse_df = pd.read_csv(sparse_csv)

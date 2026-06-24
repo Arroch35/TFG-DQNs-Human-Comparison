@@ -24,7 +24,7 @@ from src.utils import upper_tri
 LAYERS     = ["conv1", "conv2", "conv3", "fc"]
 RDM_METHOD = REPR["rdm_method"]   # "correlation"
 
-SAVE_FOLDER = ensure("results_cross_seed_rsa")   # data/multi_seed/cross_seed_rsa/big_rdm_equal_size
+SAVE_FOLDER = ensure("results_cross_seed_rsa") 
 
 # =========================================================
 # HELPERS
@@ -39,7 +39,7 @@ def spearman_rsa(rdm_a, rdm_b):
 
 
 def load_rdm(seed, game, layer):
-    path = get_path("rdms_big", seed=seed, game=game) / f"{game}_{layer}_{RDM_METHOD}_RDM.npy"
+    path = get_path("rdms_bigset", seed=seed, game=game) / f"{game}_{layer}_{RDM_METHOD}_RDM.npy"
     if not path.exists():
         raise FileNotFoundError(f"Missing RDM: {path}")
     return np.load(path)

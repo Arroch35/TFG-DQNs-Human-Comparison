@@ -24,7 +24,7 @@ MEDIUM_LOW           = TSTE["medium_low"]         # 0.4
 MEDIUM_HIGH          = TSTE["medium_high"]        # 0.6
 STRUCTURE_PERCENTILE = TSTE["structure_pctile"]   # 20
 
-OUTPUT_DIR = ensure("triplets_scores_dir")             # data/triplets_results/triplet_scores
+OUTPUT_DIR = ensure("triplets_scores_dir")
 
 # =========================================================
 # SCORING
@@ -68,7 +68,7 @@ for game in GAMES:
     index_to_clip  = dict(zip(subset_df["clip_index"], subset_df["clip_name"]))
 
     # ── RDM ───────────────────────────────────────────────
-    rdm_path = get_path("rdms_selected15", seed=SEED, game=game) / f"{game}_fc_{METHOD}_RDM.npy"
+    rdm_path = get_path("rdms_subset15", seed=SEED, game=game) / f"{game}_fc_{METHOD}_RDM.npy"
     if not rdm_path.exists():
         print(f"  Missing RDM: {rdm_path}, skipping."); continue
 

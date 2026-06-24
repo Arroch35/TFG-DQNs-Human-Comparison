@@ -23,7 +23,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import VecFrameStack, DummyVecEnv
 
 from src.config import (
-    GAMES, SEEDS, GAME_TO_GYM_ID, REFERENCE_SEED,
+    GAMES, SEEDS, GAME_TO_GYM_ID, DEVICE, REFERENCE_SEED,
     get_path, ensure,
 )
 from src.models.custom_dqn import CustomCNN
@@ -33,19 +33,6 @@ from src.wrappers.environment_wrappers import (
     RestrictSpaceInvadorsActions,
 )
 from src.utils import dqn_preprocess_from_16_frames
-
-# =========================================================
-# CONFIG
-# =========================================================
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Suggested additions to config.py PATHS:
-#   "dqn_selected15": DATA / "dqn_state_action_qvalue" / "{seed}" / "selected_subset_15" / "{game}",
-from src.config import DATA
-def get_dqn_selected15(seed, game):
-    p = DATA / "dqn_state_action_qvalue" / seed / "selected_subset_15" / game
-    p.mkdir(parents=True, exist_ok=True)
-    return p
 
 # =========================================================
 # ENVIRONMENT
@@ -74,8 +61,8 @@ for seed in SEEDS:
         gym_id = GAME_TO_GYM_ID[game]
         print(f"\nProcessing game: {game}")
 
-        frames_folder  = get_path("arrays_buenos25_game", game=game)
-        output_folder  = get_dqn_selected15(seed, game)
+        frames_folder  = get_path("arrays_pool25_game", game=game)
+        output_folder  = ensure("states_subset15_game", seed=seed, game=game)
 
         # ── Clip filtering (always use REFERENCE_SEED subset) ──
         filter_csv = get_path("subsets_csv", seed=REFERENCE_SEED, game=game)

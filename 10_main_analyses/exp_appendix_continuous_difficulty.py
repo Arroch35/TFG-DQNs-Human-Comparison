@@ -15,12 +15,7 @@ from src.utils import majority_vote_with_ties   # not used directly but kept for
 # =========================================================
 N_BINS               = 10
 MIN_TRIPLETS_PER_BIN = 3
-
-# Suggested addition to config.py PATHS:
-#   "agreement_vs_difficulty": DATA / "triplets_results" / "agreement_vs_difficulty",
-from src.config import DATA
-OUTPUT_DIR = DATA / "triplets_results" / "agreement_vs_difficulty"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = ensure("results_agreement_bins")
 
 # =========================================================
 # HELPERS
@@ -75,7 +70,7 @@ for game in GAMES:
         print("  No other seed columns — skipping DQN curve.")
 
     # ── Human agreement vs difficulty ─────────────────────
-    sparse_csv = get_path("experiment_cleaned") / f"{game}_triplets_indexed_with_difficulty.csv"
+    sparse_csv = get_path("experiment_sparse") / f"{game}_triplets_indexed_with_difficulty.csv"
     human_available = sparse_csv.exists()
 
     if human_available:

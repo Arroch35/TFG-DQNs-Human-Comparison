@@ -20,18 +20,17 @@ DIFFICULTIES = ["easy_triplets", "medium_triplets", "hard_triplets"]
 CHANCE       = 1 / 3
 
 # Paths
-EXP2_DIR  = get_path("experiment_exp2")       # data/triplets_results/exp2/cleaned_results
+INDIVIDUAL_DIR  = get_path("experiment_individual")       # data/triplets_results/exp2/cleaned_results
 DQN_JSON  = get_path("jsons_pong_triplets") # data/jsons/pong_final_triplet_exp.json
 
 # Suggested addition to config.py PATHS:
 #   "exp2_sparse_subset": DATA / "triplets_results" / "exp2" / "cleaned_results" / "sparse_individual_subset",
 from src.config import DATA
-SPARSE_DIR = DATA / "triplets_results" / "exp2" / "cleaned_results" / "sparse_individual_subset"
+SPARSE_DIR = ensure("experiment_sparse_individual_subset")
 
 SPARSE_FILE     = SPARSE_DIR / f"{GAME}_sparse_individual_subset.csv"
-INDIVIDUAL_FILE = EXP2_DIR   / f"{GAME}_triplets_indexed_with_difficulty.csv"
+INDIVIDUAL_FILE = INDIVIDUAL_DIR   / f"{GAME}_triplets_indexed_with_difficulty.csv"
 OUTPUT_DIR      = SPARSE_DIR
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # =========================================================
 # LOAD DQN TRIPLETS → difficulty label per clip-set

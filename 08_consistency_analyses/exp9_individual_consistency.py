@@ -20,14 +20,9 @@ CHANCE     = 1 / 3
 DIFFICULTIES   = ["easy_triplets", "medium_triplets", "hard_triplets"]
 
 # Paths
-EXP2_DIR = get_path("experiment_exp2")                    # data/triplets_results/exp2/cleaned_results
-DQN_JSON = get_path("jsons_pong_triplets")              # data/jsons/pong_final_triplet_exp.json
-
-# Suggested addition to config.py PATHS:
-#   "exp2_accuracy": DATA / "triplets_results" / "exp2" / "accuracy_results",
-from src.config import DATA
-OUTPUT_DIR = DATA / "triplets_results" / "exp2" / "accuracy_results"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+INDIVIDUAL_DIR = get_path("experiment_individual")                    
+DQN_JSON = get_path("jsons_pong_triplets")              
+OUTPUT_DIR = ensure("experiment_individual_accuracy")
 
 # =========================================================
 # LOAD DQN TRIPLETS → lookup: game × difficulty × clip_set → odd_clip
@@ -51,7 +46,7 @@ for game in GAMES:
 # =========================================================
 all_results = []
 for game in GAMES:
-    responses_file = EXP2_DIR / f"{game}_triplets_indexed_with_difficulty.csv"
+    responses_file = INDIVIDUAL_DIR / f"{game}_triplets_indexed_with_difficulty.csv"
     if not responses_file.exists():
         print(f"Responses file not found for {game}, skipping.")
         continue

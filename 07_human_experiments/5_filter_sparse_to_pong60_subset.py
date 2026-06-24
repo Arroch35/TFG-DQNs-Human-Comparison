@@ -17,14 +17,9 @@ GYM_KEY     = "PongNoFrameskip-v4"
 DIFFICULTIES = ["easy_triplets", "medium_triplets", "hard_triplets"]
 
 # Paths — all from config
-SPARSE_FILE      = get_path("experiment_cleaned") / "pong_triplets_indexed_with_difficulty.csv"
+SPARSE_FILE      = get_path("experiment_sparse") / "pong_triplets_indexed_with_difficulty.csv"
 DQN_TRIPLETS_JSON = get_path("jsons_pong_triplets")
-
-# Suggested addition to config.py PATHS:
-#   "exp2_sparse_subset": DATA / "triplets_results" / "exp2" / "cleaned_results" / "sparse_individual_subset",
-from src.config import DATA
-OUTPUT_DIR = DATA / "triplets_results" / "exp2" / "cleaned_results" / "sparse_individual_subset"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = ensure("experiment_sparse_individual_subset")
 
 # =========================================================
 # LOAD REFERENCE TRIPLETS (60 DQN-defined triplets)

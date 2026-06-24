@@ -123,6 +123,8 @@ Keys follow the pattern:  {domain}_{variant}_{qualifier}
 """
 
 from pathlib import Path
+import sys
+import torch
 
 # =========================================================
 # PROJECT ROOT
@@ -145,6 +147,8 @@ GAME_TO_GYM_ID = {
 }
 
 GYM_ID_TO_GAME = {v: k for k, v in GAME_TO_GYM_ID.items()}
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # =========================================================
 # DQN HYPERPARAMETERS
@@ -198,6 +202,10 @@ TSTE = {
 DATA    = ROOT / "data"
 MODELS  = ROOT / "models"
 RESULTS = ROOT / "results"
+
+_lib = ROOT / "lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
 
 # =========================================================
 # PATHS
@@ -292,9 +300,11 @@ PATHS = {
 
     # ── Experiment data ───────────────────────────────────
     # old: data/triplets_results/final_experiment
-    "experiment_deployment_raw":    DATA / "experiment" / "deployment",
+    "experiment_individual_raw":    DATA / "experiment" / "individual",
     # old: data/triplets_results/final_experiment/cleaned_results
-    "experiment_deployment":        DATA / "experiment" / "deployment" / "cleaned_results",
+    "experiment_individual":        DATA / "experiment" / "individual" / "cleaned_results",
+    # old: data/triplets_results/exp2/cleaned_results
+    "experiment_sparse_raw":            DATA / "experiment" / "sparse" / "cleaned_results",
     # old: data/triplets_results/exp2/cleaned_results
     "experiment_sparse":            DATA / "experiment" / "sparse" / "cleaned_results",
     # old: data/triplets_results/own_data/cleaned_results
@@ -302,9 +312,9 @@ PATHS = {
     # old: data/extra
     "experiment_extra":             DATA / "experiment" / "extra",
     # old: data/triplets_results/exp2/cleaned_results/sparse_individual_subset
-    "experiment_sparse_subset":     DATA / "experiment" / "sparse" / "cleaned_results" / "sparse_subset",
+    "experiment_sparse_individual_subset":     DATA / "experiment" / "sparse" / "cleaned_results" / "sparse_individual_subset",
     # old: data/triplets_results/exp2/accuracy_results
-    "experiment_sparse_accuracy":   DATA / "experiment" / "sparse" / "accuracy_results",
+    "experiment_individual_accuracy":   DATA / "experiment" / "individual" / "accuracy_results",
 
     # ── Human RDMs ───────────────────────────────────────
     # old: data/triplets_results/final_experiment/cleaned_results/rdms_human_experiment_rsa

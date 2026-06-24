@@ -16,6 +16,7 @@ from wandb.integration.sb3 import WandbCallback
 from src.models.custom_dqn import CustomCNN
 from src.wrappers.environment_wrappers import RestrictPongActions
 import argparse
+from src.config import DEVICE
 
 # =========================================================
 # CONFIGURATION
@@ -27,10 +28,8 @@ args = parser.parse_args()
 GAME = "PongNoFrameskip-v4"
 TOTAL_TIMESTEPS = 25_000_000
 CHECKPOINT_FREQ = 500_000
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-N_ENVS = 4  # single environment
+N_ENVS = 4
 
-print(DEVICE)
 
 # =========================================================
 # ENVIRONMENT FUNCTION

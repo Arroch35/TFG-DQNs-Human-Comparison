@@ -18,12 +18,6 @@ from src.config import GAMES, SEEDS, REPR, get_path, ensure
 N_COMPONENTS = REPR["n_pca_components"]   # 100
 NORMALIZE    = True
 
-# Suggested addition to config.py PATHS (same as script 1):
-#   "dqn_pca_training": DATA / "dqn_state_action_qvalue" / "{seed}" / "pca_training_set" / "{game}",
-from src.config import DATA
-def get_dqn_pca_training(seed, game):
-    return DATA / "dqn_state_action_qvalue" / seed / "pca_training_set" / game
-
 # =========================================================
 # MAIN
 # =========================================================
@@ -33,7 +27,7 @@ for seed in SEEDS:
     for game in GAMES:
         print(f"\n{'='*60}\nGame: {game}\n{'='*60}")
 
-        data_folder = get_dqn_pca_training(seed, game)
+        data_folder = get_path("states_pca_game", seed=seed, game=game)
 
         files = [f for f in os.listdir(data_folder) if f.endswith(".npz") and game in f.lower()]
 

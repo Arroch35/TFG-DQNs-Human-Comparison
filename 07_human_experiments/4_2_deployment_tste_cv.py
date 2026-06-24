@@ -7,10 +7,10 @@ Runs LOPO-CV (primary) + triplet-split CV (secondary).
 import os
 import numpy as np
 import pandas as pd
-import cy_tste
 from scipy.spatial.distance import cdist
 
 from src.config import GAMES, TSTE, get_path, ensure
+import cy_tste
 
 # =========================================================
 # CONFIG
@@ -26,16 +26,8 @@ USE_LOG  = True
 
 MIN_TRIPLETS_PER_PARTICIPANT = 6
 
-# Suggested addition to config.py PATHS:
-#   "tste_cv_results": DATA / "triplets_results" / "final_experiment" / "cleaned_results" / "tste_cv_results",
-BASE_INPUT_DIR  = get_path("experiment_cleaned")
-BASE_OUTPUT_DIR = ensure("experiment_cleaned").parent / "cleaned_results" / "tste_cv_results"
-
-# Simpler: derive directly
-from src.config import DATA
-BASE_INPUT_DIR  = DATA / "triplets_results" / "final_experiment" / "cleaned_results"
-BASE_OUTPUT_DIR = BASE_INPUT_DIR / "tste_cv_results"
-BASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+BASE_INPUT_DIR  = get_path("experiment_sparse")
+BASE_OUTPUT_DIR = ensure("results_cv_deployment")
 
 # =========================================================
 # HELPERS

@@ -13,7 +13,7 @@ N_FRAMES = REPR["frame_stack"] * 4      # 16  (4 stacks × 4 selected frames)
 # PROCESS ALL GAMES
 # =========================
 for game in GAMES:
-    input_folder  = get_path("clips_root") / "pca_training" / game
+    input_folder  = get_path("clips_pca", game=game) 
     output_folder = ensure("arrays_pca_game", game=game)
 
     clip_files = [f for f in os.listdir(input_folder) if f.endswith(".mp4")]

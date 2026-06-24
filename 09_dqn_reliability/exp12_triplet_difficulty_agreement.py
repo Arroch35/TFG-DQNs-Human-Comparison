@@ -24,7 +24,7 @@ MEDIUM_LOW           = TSTE["medium_low"]      # 0.4
 MEDIUM_HIGH          = TSTE["medium_high"]     # 0.6
 STRUCTURE_PERCENTILE = TSTE["structure_pctile"] # 20
 
-OUTPUT_DIR = ensure("triplets_scores_dir")          # data/triplets_results/triplet_scores
+OUTPUT_DIR = ensure("triplets_scores_dir") 
 
 # =========================================================
 # HELPERS
@@ -63,7 +63,7 @@ summary_rows = []
 for game in GAMES:
     print(f"\n{'='*60}\nGAME: {game}\n{'='*60}")
 
-    clip_map_path = get_path("maps_selected15_game", game=game)
+    clip_map_path = get_path("maps_subset15_game", game=game)
     if not clip_map_path.exists():
         print(f"  Missing clip map: {clip_map_path}, skipping."); continue
 
@@ -77,7 +77,7 @@ for game in GAMES:
     for seed in ALL_SEEDS:
         print(f"\n  --- {seed} ---")
 
-        rdm_path = get_path("rdms_selected15", seed=seed, game=game) / f"{game}_fc_{RDM_METHOD}_RDM.npy"
+        rdm_path = get_path("rdms_subset15", seed=seed, game=game) / f"{game}_fc_{RDM_METHOD}_RDM.npy"
         if not rdm_path.exists():
             print(f"    Missing RDM: {rdm_path}, skipping."); continue
 

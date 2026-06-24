@@ -12,8 +12,8 @@ from src.config import GAMES, GYM_ID_TO_GAME, get_path, ensure
 # PATHS
 # =========================================================
 # Input: merged triplets from script 1, stored in exp2_cleaned
-TRIPLETS_FILE  = get_path("experiment_exp2") / "all_participants_triplets.csv"
-OUTPUT_DIR     = ensure("experiment_exp2")   # data/triplets_results/exp2/cleaned_results
+TRIPLETS_FILE  = get_path("experiment_individual") / "all_participants_triplets.csv"
+OUTPUT_DIR     = ensure("experiment_individual")   # data/triplets_results/exp2/cleaned_results
 
 # GYM_ID_TO_GAME from config already maps gym IDs → short names, e.g.
 # "PongNoFrameskip-v4" → "pong", used below as game_name_map
@@ -24,7 +24,7 @@ game_name_map = GYM_ID_TO_GAME   # {"PongNoFrameskip-v4": "pong", ...}
 # =========================================================
 master_map = {}
 for game in GAMES:
-    map_path = get_path("maps_selected15_game", game=game)
+    map_path = get_path("maps_subset15_game", game=game)
     if map_path.exists():
         map_df = pd.read_csv(map_path)
         master_map[game] = pd.Series(map_df.clip_index.values, index=map_df.clip_name).to_dict()

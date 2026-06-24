@@ -11,7 +11,7 @@ from stable_baselines3.common.atari_wrappers import AtariWrapper
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import VecFrameStack, DummyVecEnv
 
-from src.config import GAMES, SEEDS, GAME_TO_GYM_ID, get_path, ensure
+from src.config import GAMES, SEEDS, GAME_TO_GYM_ID, get_path, ensure, DEVICE
 from src.models.custom_dqn import CustomCNN
 from src.utils import dqn_preprocess_from_16_frames
 from src.wrappers.environment_wrappers import (
@@ -21,11 +21,8 @@ from src.wrappers.environment_wrappers import (
 # =========================================================
 # CONFIGURATION
 # =========================================================
-# Remove seed_42 from the loop — it is the reference seed used
-# for subset selection, not a training seed to evaluate here.
-EVAL_SEEDS = [s for s in SEEDS if s != "seed_42"]   # seed_0 … seed_3
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+EVAL_SEEDS = [s for s in SEEDS if s != "seed_42"]
 
 # =========================================================
 # ENVIRONMENT FACTORY
@@ -73,12 +70,12 @@ def register_hooks(model):
 # =========================================================
 for seed in EVAL_SEEDS:
     # Paths for this seed (all resolved from config)
-    output_folder = ensure("activations_buenos25_seed", seed=seed)
+    output_folder = ensure("activations_pool25_seed", seed=seed)
 
     for game in GAMES:
         gym_id = GAME_TO_GYM_ID[game]
 
-        frames_folder = get_path("arrays_buenos25_game", game=game)
+        frames_folder = get_path("arrays_pool25_game", game=game)
         model_path    = get_path("models_dqn", gym_id=gym_id, seed=seed)
 
         clip_files = [f for f in os.listdir(frames_folder) if f.endswith(".npy")]

@@ -7,7 +7,7 @@ from collections import deque
 import numpy as np
 import imageio
 
-from src.config import GAME_TO_GYM_ID, GYM_ID_TO_GAME, REPR, get_path
+from src.config import GAME_TO_GYM_ID, GYM_ID_TO_GAME, REPR, get_path, ensure
 
 # ============================================================
 # CONFIG
@@ -15,16 +15,13 @@ from src.config import GAME_TO_GYM_ID, GYM_ID_TO_GAME, REPR, get_path
 
 # ---- Gameplay identity ----
 SUBJECT_ID = "sub_training_set_pca"
-GYM_ID = "SpaceInvadersNoFrameskip-v4"    # key into GAME_TO_GYM_ID / GYM_ID_TO_GAME
+GYM_ID = "SpaceInvadersNoFrameskip-v4"
 GAME = GYM_ID_TO_GAME[GYM_ID]             # -> "spaceinvaders"
 BLOCK_INDEX = 1
 
 # ---- Paths (from config) ----
-FRAMES_DIR = get_path("recordings_pca")          # data/human_plays/pca_training
-CLIPS_ROOT = str(get_path("clips_root")) + "/pca_training"   # data/test_16_clips/pca_training
-# NOTE: "pca_training" is a sub-folder of clips_root not yet in config.
-# Suggested addition to PATHS in config.py:
-#   "clips_pca_training": DATA / "test_16_clips" / "pca_training",
+FRAMES_DIR = get_path("recordings_pca")         
+CLIPS_ROOT = str(ensure("clips_pca")) 
 
 # ---- Clip settings (frame count from REPR config) ----
 NUM_FRAMES = REPR["frame_stack"] * 4      # 16 frames (4 stacks × 4)

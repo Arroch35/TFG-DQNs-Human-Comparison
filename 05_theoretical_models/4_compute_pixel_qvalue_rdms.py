@@ -48,7 +48,7 @@ for seed in ACTIVE_SEEDS:
     for game in GAMES:
         print(f"\n{'='*60}\n{game}\n{'='*60}")
 
-        input_folder = get_dqn_selected15(seed, game)
+        input_folder = get_path("states_subset15_game", seed=seed, game=game)
 
         files = sorted(
             f for f in os.listdir(input_folder)

@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 from itertools import combinations
 from scipy.stats import spearmanr
 from tqdm import tqdm
-import cy_tste
-
 from src.config import GAMES, REFERENCE_SEED, REPR, TSTE, get_path, ensure
 from src.utils import embedding_to_rdm, build_triplets_from_rdm
+import cy_tste
+
 
 # =========================================================
 # CONFIG
@@ -25,15 +25,8 @@ MAX_ITER = TSTE["max_iter"]         # 1000
 SUBSET_PERCENTS = [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
 
 # Paths
-SAVE_FOLDER = ensure("rdms_selected15", seed=SEED, game="triplet_experiment_results")
-# NOTE: "rdms_selected15" resolves to data/test_16_rdms/selected_subset_15/{seed}/{game}.
-# The original output path was data/triplet_experiment_results/selected_subset_15/{seed}.
-# If you want a dedicated key, consider adding to config.py:
-#   "triplet_exp_results": DATA / "triplet_experiment_results" / "selected_subset_15" / "{seed}",
-# Until then, SAVE_FOLDER is derived manually:
-from src.config import DATA
-SAVE_FOLDER = DATA / "triplet_experiment_results" / "selected_subset_15" / SEED
-SAVE_FOLDER.mkdir(parents=True, exist_ok=True)
+SAVE_FOLDER = ensure("rdms_subset15", seed=SEED, game="triplet_experiment_results")
+SAVE_FOLDER = ensure("triplets_tste_results")
 
 # =========================================================
 # HELPERS
@@ -54,7 +47,7 @@ for game in GAMES:
         print(f"GAME: {game} | LAYER: {layer}")
         print("=" * 60)
 
-        rdm_path = get_path("rdms_selected15", seed=SEED, game=game) / f"{game}_{layer}_{METHOD}_RDM.npy"
+        rdm_path = get_path("rdms_subset15", seed=SEED, game=game) / f"{game}_{layer}_{METHOD}_RDM.npy"
 
         if not rdm_path.exists():
             print(f"Missing file: {rdm_path}")

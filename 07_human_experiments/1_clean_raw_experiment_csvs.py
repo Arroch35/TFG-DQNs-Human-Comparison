@@ -12,8 +12,8 @@ from src.config import get_path, ensure
 # =========================================================
 # PATHS
 # =========================================================
-INPUT_FOLDER  = get_path("experiment_raw")       # data/triplets_results/final_experiment
-OUTPUT_FOLDER = ensure("experiment_cleaned")     # data/triplets_results/final_experiment/cleaned_results
+INPUT_FOLDER  = get_path("experiment_individual_raw")       
+OUTPUT_FOLDER = ensure("experiment_individual")
 
 OUTPUT_TRIPLETS_FILE = OUTPUT_FOLDER / "all_participants_triplets.csv"
 OUTPUT_SURVEY_FILE   = OUTPUT_FOLDER / "all_participants_survey.csv"

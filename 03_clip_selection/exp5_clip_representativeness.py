@@ -43,13 +43,10 @@ def compare_second_order_rsa(folder1, folder2, filename):
 
 # =========================================================
 # MAIN
-# NOTE: "rdms_pilot" is not yet in config.py — suggested addition:
-#   "rdms_pilot": DATA / "test_16_rdms" / "pilot" / "{seed}" / "{game}",
-# Until then, it falls back to a manual path derived from DATA.
 # =========================================================
 for game in GAMES:
-    folder_pilot   = get_path("rdms_pilot", seed=SEED, game=game)   # once added to config
-    folder_big_rdm = get_path("rdms_big",   seed=SEED, game=game)
+    folder_pilot   = get_path("rdms_pilot", seed=SEED, game=game) 
+    folder_big_rdm = get_path("rdms_bigset", seed=SEED, game=game)
 
     target_file = f"{game}_DQN_layer_RSA_{METHOD}_matrix.npy"
 

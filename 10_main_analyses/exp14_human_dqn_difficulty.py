@@ -18,8 +18,7 @@ CHANCE = 1 / 3
 # Suggested additions to config.py PATHS:
 #   "human_agreement": DATA / "triplets_results" / "human_agreement_by_difficulty",
 from src.config import DATA
-OUTPUT_DIR = DATA / "triplets_results" / "human_agreement_by_difficulty"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = ensure("results_human_agreement")
 
 # =========================================================
 # HELPERS
@@ -67,7 +66,7 @@ for game in GAMES:
         lambda r: frozenset({int(r["similar_1_idx"]), int(r["similar_2_idx"]), int(r["odd_idx"])}), axis=1)
     master_df["bucket"] = master_df["difficulty"].str.replace("_triplets", "").str.capitalize()
 
-    sparse_csv = get_path("experiment_cleaned") / f"{game}_triplets_indexed_with_difficulty.csv"
+    sparse_csv = get_path("experiment_sparse") / f"{game}_triplets_indexed_with_difficulty.csv"
     if not sparse_csv.exists():
         print(f"  Missing sparse responses: {sparse_csv}, skipping."); continue
     sparse_df = pd.read_csv(sparse_csv)

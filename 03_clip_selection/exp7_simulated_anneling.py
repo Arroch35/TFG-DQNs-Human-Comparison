@@ -21,16 +21,9 @@ N_SELECT = TSTE["n_clips"]          # 15
 N_ITER   = 300
 
 # Paths
-ACTIVATIONS_FOLDER = get_path("activations_buenos25_seed", seed=SEED)
+ACTIVATIONS_FOLDER = get_path("activations_pool25_seed", seed=SEED)
 SAVE_FOLDER        = ensure("subsets_seed",        seed=SEED)
-
-# NOTE: "clip_maps" in config points to "maps/selected_15/{game}_clip_map.csv"
-# but this script uses "maps/buenos_25/{game}_clip_map.csv" — a different source.
-# Suggested addition to config.py:
-#   "clip_maps_buenos25": DATA / "maps" / "buenos_25" / "{game}_clip_map.csv",
-# Until then we derive it manually from the DATA path:
-from src.config import DATA
-MAP_FOLDER = DATA / "maps" / "buenos_25"
+MAP_FOLDER = get_path("maps_pool25_game")
 
 # =========================================================
 # SAVE RSA HEATMAP
@@ -57,7 +50,7 @@ def save_rsa_heatmap(rsa_matrix, layer_names, save_path, title):
 # LOAD BIG RSA (TARGET)
 # =========================================================
 def load_big_rsa(game):
-    path = get_path("rdms_big", seed=SEED, game=game) / f"{game}_DQN_layer_RSA_{METHOD}_matrix.npy"
+    path = get_path("rdms_bigset", seed=SEED, game=game) / f"{game}_DQN_layer_RSA_{METHOD}_matrix.npy"
     return np.load(path)
 
 

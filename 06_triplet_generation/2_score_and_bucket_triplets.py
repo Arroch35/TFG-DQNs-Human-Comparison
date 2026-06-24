@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 from tqdm import tqdm
-import cy_tste
 
 from src.config import (
     GAMES, REFERENCE_SEED, REPR, TSTE,
@@ -19,6 +18,7 @@ from src.utils import (
     embedding_to_rdm, build_triplets_from_rdm,
     remove_symmetric_triplets, add_symmetric_triplets,
 )
+import cy_tste
 
 # =========================================================
 # CONFIG
@@ -36,15 +36,7 @@ MEDIUM_LOW           = TSTE["medium_low"]         # 0.4
 MEDIUM_HIGH          = TSTE["medium_high"]        # 0.6
 STRUCTURE_PERCENTILE = TSTE["structure_pctile"]   # 20
 
-# Suggested addition to config.py PATHS:
-#   "triplet_viz": DATA / "triplet_visualization_subset" / "selected_15" / "{seed}" / "filtered_all_difficulties",
-from src.config import DATA
-def get_triplet_viz(seed):
-    p = DATA / "triplet_visualization_subset" / "selected_15" / seed / "filtered_all_difficulties"
-    p.mkdir(parents=True, exist_ok=True)
-    return p
-
-SAVE_FOLDER = get_triplet_viz(SEED)
+SAVE_FOLDER = get_path("triplet_viz",seed=SEED)
 
 # =========================================================
 # HELPERS
@@ -72,7 +64,7 @@ def save_triplets(triplets_array, difficulty_name, game_out, new_to_orig,
         used_clips.update([clip_i, clip_j, clip_k])
 
         # Source clips come from the buenos_25 visualisation folder
-        clips_base = get_path("clips_buenos25_game", game=game)
+        clips_base = get_path("clips_subset15_game", game=game)
         for clip_name, prefix in [(clip_i, "clip1"), (clip_j, "clip2"), (clip_k, "odd")]:
             src = clips_base / clip_name
             dst = triplet_folder / f"{prefix}_{clip_name}"
@@ -116,7 +108,7 @@ for game in GAMES:
     print(f"Loaded subset with {len(selected_idxs)} clips")
 
     # ── RDM ───────────────────────────────────────────────
-    rdm_path = get_path("rdms_selected15", seed=SEED, game=game) / f"{game}_fc_{METHOD}_RDM.npy"
+    rdm_path = get_path("rdms_subset15", seed=SEED, game=game) / f"{game}_fc_{METHOD}_RDM.npy"
     if not rdm_path.exists():
         print(f"Missing RDM: {rdm_path}"); continue
 
@@ -193,7 +185,7 @@ for game in GAMES:
     print("\nCopying unique clips...")
     clips_out = game_out / "clips"
     clips_out.mkdir(parents=True, exist_ok=True)
-    clips_src = get_path("clips_buenos25_game", game=game)
+    clips_src = get_path("clips_subset15_game", game=game)
 
     for clip_name in tqdm(used_clips):
         dst = clips_out / clip_name

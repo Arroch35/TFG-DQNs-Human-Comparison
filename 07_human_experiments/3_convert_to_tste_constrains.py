@@ -10,8 +10,8 @@ from src.config import GAMES, get_path, ensure
 # =========================================================
 # PATHS
 # =========================================================
-INPUT_DIR  = get_path("experiment_exp2")   # data/triplets_results/exp2/cleaned_results
-OUTPUT_DIR = ensure("experiment_exp2")
+INPUT_DIR  = get_path("experiment_individual") 
+OUTPUT_DIR = ensure("experiment_individual")
 
 # =========================================================
 # MAIN

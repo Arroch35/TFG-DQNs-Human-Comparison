@@ -10,13 +10,13 @@ import queue
 from stable_baselines3.common.atari_wrappers import AtariWrapper
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 
-from wrappers.custom_atari_wrapper import CustomAtariWrapper
+from src.wrappers.custom_atari_wrapper import CustomAtariWrapper
 from src.config import GAMES, GAME_TO_GYM_ID, SEEDS, get_path
 
 # ----------------------------
 # CONFIGURATION
 # ----------------------------
-GAME = GAMES[2]                            # "spaceinvaders"
+GAME = GAMES[2]                           # "spaceinvaders"
 GYM_ID = GAME_TO_GYM_ID[GAME]             # "SpaceInvadersNoFrameskip-v4"
 
 SUBJECT_ID = "sub_training_set_pca"
@@ -24,7 +24,7 @@ BLOCK_INDEX = 1
 BLOCK_DURATION_MINUTES = 15
 FPS = 60
 FRAME_SKIP = 1
-SAVE_FOLDER = get_path("recordings_pca")   # data/human_plays/pca_training
+SAVE_FOLDER = get_path("recordings_pca")
 CHUNK_SIZE = 5000
 
 SEED = 200

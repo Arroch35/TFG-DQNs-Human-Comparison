@@ -99,6 +99,7 @@ Original copyright notices and license terms remain applicable to the `cy_tste` 
 
 ---
 
+
 ## Project Structure
 
 ```
@@ -135,7 +136,7 @@ project/
 │
 ├── 04_dqn_representations/         # Activation extraction, PCA, RDM computation
 │   ├── 1_extract_frame_arrays.py
-│   ├── 2_extract_activations_seed42.py
+│   ├── 2_extract_activation_units.py
 │   ├── 3_train_pca_models.py
 │   └── 4_compute_dqn_rdms.py
 │
@@ -186,6 +187,39 @@ project/
 └── README.md
 ```
 
+
+---
+
+## Understanding the Data Scopes
+
+Before reading the execution order, it is important to understand that several pipeline stages need to be run **more than once**, each time targeting a different dataset scope.
+
+Four dataset scopes exist, each serving a different purpose:
+
+| Scope name | Approx. size | Purpose |
+|---|---|---|
+| `pca_training` | ~900 clips/game | Training the PCA models for layer activations and pixel states. Large and diverse to ensure stable PCA components. Never used directly in experiments. |
+| `pool25` | 25 clips/game | The manually selected candidate pool from which the final 15 clips are chosen by simulated annealing (Experiment 7). |
+| `bigset` | 909 clips/game | The reference dataset used to evaluate how well any clip subset captures the full DQN representational geometry (Experiments 5–6). Also used for the HCF model and cross-seed RSA (Experiment 11). |
+| `subset15` | 15 clips/game | The final optimized clip subset used in all human experiments and the main analyses. Selected by simulated annealing from `pool25` to best reproduce the `bigset` RSA structure. These are **not** separately recorded — they are a filtered subset of `pool25` clips, defined by `subsets_csv` in `src/config.py` after running `03_clip_selection/`. |
+
+The scripts in `02_stimulus_generation/` and `04_dqn_representations/` must each be run once per scope where relevant. The table below summarizes which scopes each stage targets:
+
+| Stage | `pca_training` | `pool25` | `bigset` | `subset15` |
+|---|:---:|:---:|:---:|:---:|
+| `02` — Record gameplay | ✓ | ✓ | ✓ | — |
+| `02` — Extract clips | ✓ | ✓ | ✓ | — |
+| `02` — Render 4-frame previews | — | ✓ | — | — |
+| `04` — Extract frame arrays | ✓ | ✓ | ✓ | — |
+| `04` — Extract activations | ✓ (seed_42) | ✓ (seed_42) | — | ✓ (all seeds, after 03) |
+| `04` — Train PCA models | ✓ | — | — | — |
+| `04` — Compute DQN RDMs | — | ✓ (seed_42) | ✓ (seed_42) | ✓ (all seeds, after 03) |
+| `05` — Pixel PCA training set | ✓ | — | — | — |
+| `05` — Train pixel PCA models | ✓ | — | — | — |
+| `05` — Q-value / state-value RDMs | — | — | — | ✓ |
+| `05` — HCF features and RDM (Pong) | — | — | ✓ | — |
+
+`subset15` clips are not recorded or extracted separately — they are selected from `pool25` after running `03_clip_selection/exp7_simulated_annealing.py`. This is why `04_dqn_representations/` must be partially re-run after `03_clip_selection/` completes.
 ---
 
 
@@ -193,27 +227,101 @@ project/
 
 Scripts must be run in pipeline order. Each stage depends on outputs from the previous one.
 
+The pipeline has two phases that are not strictly sequential: `04_dqn_representations/` must run partially **before** `03_clip_selection/` and partially **after**. Read the scope table above before starting. Note that folder `04` runs before folder `03` — this is intentional, not a typo.
+
 ```
-01_training/                        Train 5 seeds × 3 games = 15 DQN models
-        ↓
-02_stimulus_generation/             Record gameplay, extract and organize clips
-        ↓
-04_dqn_representations/             Extract activations, train PCA, compute RDMs
-        ↓
-03_clip_selection/                  Select optimal 15-clip subsets (Exp 5–8)
-        ↓
-05_theoretical_models/              Compute pixel, Q-value, HCF reference RDMs
-06_triplet_generation/              Score and bucket triplets, export for experiment
-        ↓
-[Upload triplets to cognition.run]  Run sparse and individual online experiments
-        ↓
-07_human_experiments/               Clean responses, run t-STE CV, compute human RDMs
-        ↓
-08_consistency_analyses/            Exp 9–10: internal consistency and cross-paradigm agreement
-09_dqn_reliability/                 Exp 11–13: cross-seed RSA and noise ceiling
-        ↓
-10_main_analyses/                   Exp 14–15 + Appendix: full RSA matrices and final results
+01_training/
+  train_dqn_pong/pacman/spaceinvaders.py
+  → Produces: models/{gym_id}/{seed}/final_model  (5 seeds × 3 games)
+        │
+        ▼
+02_stimulus_generation/  [RUN 3 TIMES — once per scope]
+  Scope 1 — pca_training : large diverse gameplay for PCA fitting
+  Scope 2 — pool25       : 25 candidate clips per game (manual selection)
+  Scope 3 — bigset       : 909-clip reference dataset
+  → Produces: data/recordings/, data/clips/, data/arrays/ for each scope
+        │
+        ▼
+04_dqn_representations/  [FIRST PASS — scopes: pca_training, pool25, bigset]
+  1_extract_frame_arrays.py    ← run for pca_training, pool25, bigset
+  2_extract_activations.py     ← run for pca_training (seed_42), pool25 (seed_42)
+  3_train_pca_models.py        ← run for pca_training only
+  4_compute_dqn_rdms.py        ← run for pool25 and bigset (seed_42)
+  → Produces: data/activations/, models/pca_layer/,
+              data/rdms/pool25/, data/rdms/bigset/
+        │
+        ▼
+03_clip_selection/  [Uses pool25 and bigset RDMs from first pass of 04]
+  exp5_clip_representativeness.py  ← compares pool25 RSA to bigset RSA (Exp 5)
+  exp6_optimal_n_clips.py          ← determines 15 is optimal subset size (Exp 6)
+  exp7_simulated_annealing.py      ← selects best 15 from pool25 (Exp 7)
+  exp8_triplet_reconstruction.py   ← validates subset15 t-STE quality (Exp 8)
+  → Produces: data/subsets/seed_42/{game}_best_subset_indices.csv
+        │
+        ▼
+04_dqn_representations/  [SECOND PASS — scope: subset15, all 5 seeds]
+  2_extract_activations.py     ← subset15, all seeds
+  4_compute_dqn_rdms.py        ← subset15, all seeds
+  multi_seed_pipeline.py       ← convenience: runs both for all seeds at once
+  → Produces: data/rdms/subset15/{seed}/{game}/
+        │
+        ├─────────────────────────────────────────┐
+        ▼                                         ▼
+05_theoretical_models/                  06_triplet_generation/
+  [Uses subset15 + bigset RDMs]           [Uses subset15 RDMs — REFERENCE_SEED only]
+  1_build_pixel_pca_training_set.py       1_create_clip_index_map.py
+  2_train_pixel_pca_models.py             2_score_and_bucket_triplets.py
+  3_extract_pixel_qvalue_states.py        3_export_triplet_scores_csv.py
+  4_compute_pixel_qvalue_rdms.py          → Produces: data/triplets/scores/
+  5_extract_hcf_features_pong.py            triplet_scores_{game}.csv with
+  6_compute_hcf_rdm_pong.py                 easy/medium/hard difficulty labels
+  → Produces: data/rdms/bigset/pong/hcf/
+    data/states/{seed}/subset15/{game}/
+        │                                         │
+        └─────────────────────────────────────────┘
+                          │
+                          ▼
+        [MANUAL STEP — Upload to cognition.run]
+        The files from 06_triplet_generation/ define which triplets
+        participants see and their difficulty labels. Upload these to
+        cognition.run to configure the online experiments.
+        Two experiments were run:
+          - Sparse experiment (~41 participants, 6 triplets/game each)
+            Code: cognition/sparse_experiment.js
+          - Individual experiment (9 participants, 60 Pong triplets each)
+            Code: cognition/individual_experiment.js
+        Download resulting CSVs from cognition.run into:
+          data/experiment/sparse/       (sparse experiment)
+          data/experiment/individual/   (individual experiment)
+        │
+        ▼
+07_human_experiments/  [Process downloaded experiment data]
+  1_clean_raw_experiment_csvs.py
+  2_index_triplets_by_clip.py
+  3_convert_to_tste_constraints.py
+  4_1_pilot_tste_cv.py              ← pilot only (Appendix A.4)
+  4_2_deployment_tste_cv.py         ← deployment (Appendix A.7)
+  5_filter_sparse_to_pong60_subset.py
+  → Produces: data/experiment/*/cleaned_results/ including human RDMs
+        │
+        ▼
+08_consistency_analyses/
+  exp9_individual_consistency.py       ← requires individual experiment data
+  exp10_sparse_individual_agreement.py ← requires both experiments data
+        │
+        ▼
+09_dqn_reliability/
+  exp11_cross_seed_rsa.py              ← requires bigset RDMs, all seeds
+  exp12_triplet_difficulty_agreement.py ← requires triplet scores from 06
+  exp13_noise_ceiling.py               ← requires subset15 RDMs + sparse data
+        │
+        ▼
+10_main_analyses/
+  exp14_human_dqn_difficulty.py        ← requires 06 triplet scores + 07 sparse data
+  exp15_full_rsa_matrix.py             ← requires all RDMs: 04 + 05 + 07 human RDMs
+  exp_appendix_continuous_difficulty.py ← requires 06 triplet scores + 07 sparse data
 ```
+
 
 ---
 
@@ -241,6 +349,8 @@ All scripts import from `src/`. The two key modules are:
 ---
 
 ## Reproducing the Paper Results
+
+If you only want to reproduce the reported results without re-running the full pipeline from scratch, download the pre-generated data from **http://bit.ly/4uOyKpN** and place it under `data/`. Then run only the scripts in `08_consistency_analyses/`, `09_dqn_reliability/`, and `10_main_analyses/`.
 
 Each experiment in the paper maps to a specific script:
 
